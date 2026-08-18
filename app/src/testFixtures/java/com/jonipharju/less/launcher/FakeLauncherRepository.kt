@@ -5,9 +5,13 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class FakeLauncherRepository : LauncherRepository {
     private val mutableInstalledApps = MutableStateFlow<List<LauncherApp>>(emptyList())
+    private val mutableFavorites = MutableStateFlow<List<Favorite>>(emptyList())
+    private val mutableSettings = MutableStateFlow(LauncherSettings())
     private val mutableLaunchedApps = mutableListOf<LauncherApp>()
 
     override val installedApps = mutableInstalledApps.asStateFlow()
+    override val favorites = mutableFavorites.asStateFlow()
+    override val settings = mutableSettings.asStateFlow()
     val launchedApps: List<LauncherApp> = mutableLaunchedApps
 
     fun install(app: LauncherApp) {
@@ -28,6 +32,20 @@ class FakeLauncherRepository : LauncherRepository {
 
     override fun launch(app: LauncherApp) {
         mutableLaunchedApps += app
+    }
+
+    override suspend fun chooseFavorite(favorite: Favorite) {
+        mutableFavorites.value =
+            (mutableFavorites.value.filterNot { it.appId == favorite.appId } + favorite)
+                .sortedBy(Favorite::position)
+    }
+
+    override suspend fun dismissFavorite(appId: LauncherAppId) {
+        mutableFavorites.value = mutableFavorites.value.filterNot { it.appId == appId }
+    }
+
+    override suspend fun updateSettings(settings: LauncherSettings) {
+        mutableSettings.value = settings
     }
 }
 

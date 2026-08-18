@@ -1,12 +1,18 @@
 package com.jonipharju.less
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.icu.text.DateFormat
+import android.net.Uri
 import android.os.Bundle
+import android.provider.AlarmClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +38,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -42,6 +50,9 @@ import androidx.compose.ui.unit.sp
 import com.jonipharju.less.launcher.AndroidLauncherRepository
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.rankedFor
+import kotlinx.coroutines.delay
+import java.util.Date
+import java.util.Locale
 
 /** Android opens this activity when Less is selected as the default Home app. */
 class MainActivity : ComponentActivity() {
@@ -51,7 +62,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         launcherRepository = AndroidLauncherRepository(applicationContext)
         setContent {
-            LessLauncher(launcherRepository)
+            LessLauncher(
+                repository = launcherRepository,
+                onOpenClock = { startActivitySafely(Intent(AlarmClock.ACTION_SHOW_ALARMS)) },
+                onOpenCalendar = { now ->
+                    startActivitySafely(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("content://com.android.calendar/time/$now")),
+                    )
+                },
+            )
         }
     }
 
@@ -59,25 +78,64 @@ class MainActivity : ComponentActivity() {
         launcherRepository.close()
         super.onDestroy()
     }
+
+    private fun startActivitySafely(intent: Intent) {
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            // Some devices do not provide a clock or calendar activity.
+        }
+    }
 }
 
 @Composable
-internal fun LessLauncher(repository: LauncherRepository) {
+internal fun LessLauncher(
+    repository: LauncherRepository,
+    onOpenClock: () -> Unit = {},
+    onOpenCalendar: (Long) -> Unit = {},
+) {
     var surface by remember { mutableStateOf(LauncherSurface.Home) }
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(60_000L - (now % 60_000L))
+            now = System.currentTimeMillis()
+        }
+    }
 
     BackHandler(enabled = surface == LauncherSurface.Drawer) {
         surface = LauncherSurface.Home
     }
 
     when (surface) {
-        LauncherSurface.Home -> Home(onOpenDrawer = { surface = LauncherSurface.Drawer })
+        LauncherSurface.Home ->
+            Home(
+                repository = repository,
+                timeText = formattedTime(context, now),
+                dateText = formattedDate(now),
+                onOpenClock = onOpenClock,
+                onOpenCalendar = { onOpenCalendar(now) },
+                onOpenDrawer = { surface = LauncherSurface.Drawer },
+            )
         LauncherSurface.Drawer -> Drawer(repository)
     }
 }
 
 @Composable
-private fun Home(onOpenDrawer: () -> Unit) {
+internal fun Home(
+    repository: LauncherRepository,
+    timeText: String,
+    dateText: String,
+    onOpenClock: () -> Unit,
+    onOpenCalendar: () -> Unit,
+    onOpenDrawer: () -> Unit,
+) {
     val drawerSwipeThreshold = with(LocalDensity.current) { 64.dp.toPx() }
+    val favorites by repository.favorites.collectAsState()
+    val installedApps by repository.installedApps.collectAsState()
+    val installedById = installedApps.associateBy { it.id }
 
     Box(
         modifier =
@@ -98,16 +156,51 @@ private fun Home(onOpenDrawer: () -> Unit) {
                 },
         contentAlignment = Alignment.Center,
     ) {
-        BasicText(
-            text = stringResource(R.string.app_name),
-            style =
-                TextStyle(
-                    color = Color.White,
-                    fontSize = 32.sp,
-                ),
-        )
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+            BasicText(
+                text = timeText,
+                modifier = Modifier.clickable(onClick = onOpenClock),
+                style = TextStyle(color = Color.White, fontSize = 48.sp),
+            )
+            BasicText(
+                text = dateText,
+                modifier = Modifier.clickable(onClick = onOpenCalendar),
+                style = TextStyle(color = Color.LightGray, fontSize = 18.sp),
+            )
+            favorites.forEach { favorite ->
+                val app = installedById[favorite.appId]
+                if (app != null) {
+                    BasicText(
+                        text = favorite.customLabel ?: app.label,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { repository.launch(app) }
+                                .padding(vertical = 12.dp),
+                        style = TextStyle(color = Color.White, fontSize = 24.sp),
+                    )
+                }
+            }
+        }
     }
 }
+
+private fun formattedTime(
+    context: android.content.Context,
+    now: Long,
+): String {
+    val skeleton =
+        if (android.text.format.DateFormat
+                .is24HourFormat(context)
+        ) {
+            "Hm"
+        } else {
+            "hm"
+        }
+    return DateFormat.getInstanceForSkeleton(skeleton, Locale.getDefault()).format(Date(now))
+}
+
+private fun formattedDate(now: Long): String = DateFormat.getDateInstance(DateFormat.FULL, Locale.getDefault()).format(Date(now))
 
 private enum class LauncherSurface {
     Home,

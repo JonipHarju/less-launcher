@@ -1,6 +1,6 @@
 package com.jonipharju.less
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -33,10 +34,17 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jonipharju.less.launcher.FavoritesSoftCap
+import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.VerticalSwipe
 import com.jonipharju.less.launcher.closesDrawer
+import com.jonipharju.less.launcher.customLabels
+import com.jonipharju.less.launcher.exceedSoftCap
+import com.jonipharju.less.launcher.hold
+import com.jonipharju.less.launcher.pinning
 import com.jonipharju.less.launcher.rankedFor
+import kotlinx.coroutines.launch
 
 /** The full list of installed apps, its search field, and the way back out. */
 @Composable
@@ -47,11 +55,17 @@ internal fun Drawer(
 ) {
     val settings by repository.settings.collectAsState()
     val installedApps by repository.installedApps.collectAsState()
+    val favorites by repository.favorites.collectAsState()
+    val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
-    val rankedApps = installedApps.rankedFor(query)
+    // A Favorite the user renamed answers to their own name for it as well as to its real one.
+    val rankedApps = installedApps.rankedFor(query, favorites.customLabels())
     val searchFocusRequester = remember { FocusRequester() }
     val opensKeyboard = settings.opensKeyboardWithDrawer
     val drawerOpenDirection = settings.drawerOpenDirection
+
+    var curated by remember { mutableStateOf<LauncherApp?>(null) }
+    var crowdedHome by remember { mutableStateOf(false) }
 
     LaunchedEffect(searchFocusRequester, opensKeyboard) {
         if (opensKeyboard) searchFocusRequester.requestFocus()
@@ -89,8 +103,10 @@ internal fun Drawer(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .clickable { repository.launch(app) }
-                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                            .combinedClickable(
+                                onClick = { repository.launch(app) },
+                                onLongClick = { curated = app },
+                            ).padding(horizontal = 24.dp, vertical = 16.dp),
                     style =
                         TextStyle(
                             color = Color.White,
@@ -99,6 +115,35 @@ internal fun Drawer(
                 )
             }
         }
+    }
+
+    curated?.let { app ->
+        AppMenu(title = app.label, onDismiss = { curated = null }) {
+            if (!favorites.hold(app.id)) {
+                MenuAction(label = stringResource(R.string.favorite_pin)) {
+                    curated = null
+                    val pin = favorites.pinning(app.id)
+                    // The cap advises rather than blocks: the Favorite goes on, and the user hears about it.
+                    crowdedHome = (favorites + pin).exceedSoftCap()
+                    scope.launch { repository.chooseFavorite(pin) }
+                }
+            }
+            MenuAction(label = stringResource(R.string.app_info)) {
+                curated = null
+                repository.showAppInfo(app.id)
+            }
+            MenuAction(label = stringResource(R.string.app_uninstall)) {
+                curated = null
+                repository.requestUninstall(app.id)
+            }
+        }
+    }
+
+    if (crowdedHome) {
+        Notice(
+            message = stringResource(R.string.favorites_soft_cap, FavoritesSoftCap),
+            onDismiss = { crowdedHome = false },
+        )
     }
 }
 

@@ -63,6 +63,37 @@ class AppRankingTest {
         )
     }
 
+    @Test
+    fun `a custom label matches alongside the real app name`() {
+        val messages = launcherAppFixture("Messages")
+        val apps = listOf(messages, launcherAppFixture("Maps"))
+        val customLabels = mapOf(messages.id to "Texts")
+
+        assertEquals(listOf("Messages"), apps.rankedFor("texts", customLabels).labels())
+        assertEquals(listOf("Messages"), apps.rankedFor("messages", customLabels).labels())
+    }
+
+    @Test
+    fun `the stronger of an app's two names decides its rank`() {
+        val settings = launcherAppFixture("Settings")
+        val sets = launcherAppFixture("Sets")
+        val apps = listOf(settings, sets)
+
+        // "Settings" only starts with the query, where its custom label matches it outright.
+        assertEquals(
+            listOf("Settings", "Sets"),
+            apps.rankedFor("set", mapOf(settings.id to "Set")).labels(),
+        )
+    }
+
+    @Test
+    fun `a custom label on one app does not match another`() {
+        val messages = launcherAppFixture("Messages")
+        val apps = listOf(messages, launcherAppFixture("Maps"))
+
+        assertEquals(emptyList<String>(), apps.rankedFor("texts", mapOf(messages.id to "Notes")).labels())
+    }
+
     private fun apps(vararg labels: String) = labels.map(::launcherAppFixture)
 
     private fun List<LauncherApp>.labels() = map(LauncherApp::label)

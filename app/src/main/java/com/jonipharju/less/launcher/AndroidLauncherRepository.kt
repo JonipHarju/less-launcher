@@ -1,11 +1,13 @@
 package com.jonipharju.less.launcher
 
+import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
+import android.net.Uri
 import android.os.Build
 import android.os.UserHandle
 import android.os.UserManager
@@ -105,6 +107,32 @@ class AndroidLauncherRepository(
         )
     }
 
+    override fun showAppInfo(appId: LauncherAppId) {
+        val user = userManager.getUserForSerialNumber(appId.profileSerialNumber) ?: return
+        launcherApps.startAppDetailsActivity(
+            ComponentName(appId.packageName, appId.activityName),
+            user,
+            null,
+            null,
+        )
+    }
+
+    /**
+     * The platform offers no profile-aware uninstall, so this asks the system in the ordinary
+     * way and lets it decide. A work app declines rather than uninstalling the personal one.
+     */
+    override fun requestUninstall(appId: LauncherAppId) {
+        val intent =
+            Intent(Intent.ACTION_DELETE, Uri.fromParts("package", appId.packageName, null))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        try {
+            context.startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            // A device without a package installer cannot uninstall anything.
+        }
+    }
+
     override suspend fun chooseFavorite(favorite: Favorite) {
         userDataStore.updateData { userData ->
             userData
@@ -123,6 +151,22 @@ class AndroidLauncherRepository(
                 .toBuilder()
                 .clearFavorites()
                 .addAllFavorites(userData.favoritesList.filterNot { it.hasSameAppIdAs(appId) })
+                .build()
+        }
+    }
+
+    override suspend fun reorderFavorites(order: List<LauncherAppId>) {
+        userDataStore.updateData { userData ->
+            val reordered =
+                userData.favoritesList
+                    .map(StoredFavorite::toFavorite)
+                    .orderedBy(order)
+                    .map(Favorite::toProto)
+
+            userData
+                .toBuilder()
+                .clearFavorites()
+                .addAllFavorites(reordered)
                 .build()
         }
     }

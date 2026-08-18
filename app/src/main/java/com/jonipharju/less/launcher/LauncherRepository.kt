@@ -55,9 +55,21 @@ interface LauncherRepository {
 
     fun launch(app: LauncherApp)
 
+    /** Opens the system's own page for [appId], where the OS explains and controls the app. */
+    fun showAppInfo(appId: LauncherAppId)
+
+    /** Asks the system to uninstall [appId]. The OS, not Less, confirms it with the user. */
+    fun requestUninstall(appId: LauncherAppId)
+
     suspend fun chooseFavorite(favorite: Favorite)
 
     suspend fun dismissFavorite(appId: LauncherAppId)
+
+    /**
+     * Rewrites every Favorite's position to the order [order] names, in one write, so that a
+     * drag cannot leave Home half-reordered. Custom labels survive untouched.
+     */
+    suspend fun reorderFavorites(order: List<LauncherAppId>)
 
     /**
      * Applies [update] to whatever is stored at the time of the write, so that two settings

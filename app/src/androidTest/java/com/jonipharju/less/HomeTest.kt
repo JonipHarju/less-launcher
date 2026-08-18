@@ -1,14 +1,24 @@
 package com.jonipharju.less
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import com.jonipharju.less.launcher.FakeLauncherRepository
 import com.jonipharju.less.launcher.Favorite
 import com.jonipharju.less.launcher.HomeAlignment
+import com.jonipharju.less.launcher.LauncherApp
+import com.jonipharju.less.launcher.ShownFavorite
 import com.jonipharju.less.launcher.launcherAppFixture
+import com.jonipharju.less.launcher.shownAmong
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -99,6 +109,145 @@ class HomeTest {
     }
 
     @Test
+    fun longPressOffersRenameUnpinAppInfoAndUninstall() {
+        homeWith("Clock")
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+
+        compose.onNodeWithText("Rename").assertExists()
+        compose.onNodeWithText("Unpin from Home").assertExists()
+        compose.onNodeWithText("App info").assertExists()
+        compose.onNodeWithText("Uninstall").assertExists()
+    }
+
+    @Test
+    fun unpinningTakesTheFavoriteOffHome() {
+        homeWith("Clock", "Camera")
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Unpin from Home").performClick()
+
+        compose.onNodeWithText("Clock").assertDoesNotExist()
+        compose.onNodeWithText("Camera").assertExists()
+    }
+
+    @Test
+    fun appInfoAndUninstallAreAskedOfTheSystem() {
+        val repository = homeWith("Clock")
+        val clock = repository.installedApps.value.single()
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("App info").performClick()
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Uninstall").performClick()
+
+        assertEquals(listOf(clock.id), repository.appInfoShownFor)
+        assertEquals(listOf(clock.id), repository.uninstallsRequestedFor)
+    }
+
+    @Test
+    fun aRenamedFavoriteShowsItsCustomLabelOnHome() {
+        homeWith("Clock")
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Rename").performClick()
+        compose.onNodeWithContentDescription("Name for Clock").performTextClearance()
+        compose.onNodeWithContentDescription("Name for Clock").performTextInput("Time")
+        compose.onNodeWithText("Save").performClick()
+
+        compose.onNodeWithText("Time").assertExists()
+        compose.onNodeWithText("Clock").assertDoesNotExist()
+    }
+
+    @Test
+    fun emptyingTheNameHandsBackTheAppsOwnName() {
+        val repository = homeWith("Clock")
+        compose.runOnIdle {
+            runBlocking {
+                repository.chooseFavorite(
+                    repository.favorites.value
+                        .single()
+                        .copy(customLabel = "Time"),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Time").performTouchInput { longClick() }
+        compose.onNodeWithText("Rename").performClick()
+        compose.onNodeWithContentDescription("Name for Clock").performTextClearance()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.onNodeWithText("Clock").assertExists()
+    }
+
+    @Test
+    fun draggingAFavoriteMovesItAndTheOrderPersists() {
+        val repository = homeWith("Clock", "Camera", "Maps")
+
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+            moveBy(Offset(0f, FavoriteRowHeight.toPx() * 1.5f))
+            up()
+        }
+
+        compose.runOnIdle {
+            assertEquals(
+                listOf("Camera", "Clock", "Maps"),
+                repository.favorites.value.labelsAmong(repository.installedApps.value),
+            )
+        }
+    }
+
+    @Test
+    fun aDragCarriesOnPastTheFirstRowItMoves() {
+        val repository = homeWith("Clock", "Camera", "Maps")
+
+        // Two separate moves, so the second is delivered after the first has already
+        // rearranged Home. A row that lost its touch when it moved would stop after one.
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+            moveBy(Offset(0f, FavoriteRowHeight.toPx() * 1.2f))
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText("Clock").performTouchInput {
+            moveBy(Offset(0f, FavoriteRowHeight.toPx() * 1.2f))
+            up()
+        }
+
+        compose.runOnIdle {
+            assertEquals(
+                listOf("Camera", "Maps", "Clock"),
+                repository.favorites.value.labelsAmong(repository.installedApps.value),
+            )
+        }
+    }
+
+    @Test
+    fun aLongPressThatBarelyMovesStillOpensTheMenu() {
+        homeWith("Clock", "Camera")
+
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+            moveBy(Offset(0f, 1f))
+            up()
+        }
+
+        compose.onNodeWithText("Unpin from Home").assertExists()
+    }
+
+    @Test
+    fun homeScrollsOnceFavoritesOutgrowIt() {
+        val labels = (1..20).map { "App$it" }
+        homeWith(*labels.toTypedArray())
+
+        compose.onNodeWithText("App1").assertExists()
+        compose.onNodeWithText(labels.last()).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun centringTakesEffectWithoutLeavingHome() {
         val repository = FakeLauncherRepository()
         compose.setContent {
@@ -120,4 +269,30 @@ class HomeTest {
         val whenCentred = compose.onNodeWithText("14:35").getUnclippedBoundsInRoot().left
         assertTrue("Expected $whenCentred to sit right of $whenLeftAligned", whenCentred > whenLeftAligned)
     }
+
+    /** Home showing one Favorite per label, in the order given, and nothing else. */
+    private fun homeWith(vararg labels: String): FakeLauncherRepository {
+        val repository = FakeLauncherRepository()
+        runBlocking {
+            labels.forEachIndexed { position, label ->
+                val app = launcherAppFixture(label)
+                repository.install(app)
+                repository.chooseFavorite(Favorite(app.id, position = position))
+            }
+        }
+
+        compose.setContent {
+            Home(
+                repository = repository,
+                timeText = "14:35",
+                dateText = "Tuesday, August 18, 2026",
+                onOpenClock = {},
+                onOpenCalendar = {},
+                onOpenDrawer = {},
+            )
+        }
+        return repository
+    }
+
+    private fun List<Favorite>.labelsAmong(installedApps: List<LauncherApp>) = shownAmong(installedApps).map(ShownFavorite::label)
 }

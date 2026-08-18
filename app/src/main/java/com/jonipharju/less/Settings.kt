@@ -1,5 +1,6 @@
 package com.jonipharju.less
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +15,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,9 +27,16 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jonipharju.less.launcher.DrawerOpenDirection
+import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.HomeAlignment
+import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.LauncherSettings
+import com.jonipharju.less.launcher.ShownFavorite
+import com.jonipharju.less.launcher.exceedSoftCap
+import com.jonipharju.less.launcher.moved
+import com.jonipharju.less.launcher.renamedTo
+import com.jonipharju.less.launcher.shownAmong
 import kotlinx.coroutines.launch
 
 /** The one screen holding every option, reached from the Drawer's top bar. */
@@ -75,6 +86,110 @@ internal fun Settings(
             label = stringResource(R.string.settings_open_keyboard_with_drawer),
             on = settings.opensKeyboardWithDrawer,
             onChange = { on -> store { it.copy(opensKeyboardWithDrawer = on) } },
+        )
+
+        FavoritesEditor(repository)
+    }
+}
+
+/** Every Favorite in one place, for the renaming and reordering that Home does one at a time. */
+@Composable
+private fun FavoritesEditor(repository: LauncherRepository) {
+    val favorites by repository.favorites.collectAsState()
+    val installedApps by repository.installedApps.collectAsState()
+    val scope = rememberCoroutineScope()
+    val shown = favorites.shownAmong(installedApps)
+    var renaming by remember { mutableStateOf<LauncherAppId?>(null) }
+
+    GroupTitle(stringResource(R.string.settings_favorites))
+
+    if (shown.isEmpty()) {
+        BasicText(
+            text = stringResource(R.string.settings_favorites_empty),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+            style = TextStyle(color = Color.Gray, fontSize = 16.sp),
+        )
+        return
+    }
+
+    if (favorites.exceedSoftCap()) {
+        BasicText(
+            text = stringResource(R.string.favorites_soft_cap, FavoritesSoftCap),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            style = TextStyle(color = Color.Gray, fontSize = 16.sp),
+        )
+    }
+
+    val reorder: (Int, Int) -> Unit = { from, to ->
+        scope.launch { repository.reorderFavorites(shown.map { it.favorite.appId }.moved(from, to)) }
+    }
+
+    shown.forEachIndexed { index, shownFavorite ->
+        FavoriteEditorRow(
+            shownFavorite = shownFavorite,
+            canMoveUp = index > 0,
+            canMoveDown = index < shown.lastIndex,
+            onRename = { renaming = shownFavorite.favorite.appId },
+            onMoveUp = { reorder(index, index - 1) },
+            onMoveDown = { reorder(index, index + 1) },
+            onUnpin = { scope.launch { repository.dismissFavorite(shownFavorite.favorite.appId) } },
+        )
+    }
+
+    shown.firstOrNull { it.favorite.appId == renaming }?.let { shownFavorite ->
+        RenameDialog(
+            appLabel = shownFavorite.app.label,
+            currentLabel = shownFavorite.label,
+            onDismiss = { renaming = null },
+            onRename = { name ->
+                renaming = null
+                scope.launch { repository.chooseFavorite(shownFavorite.favorite.renamedTo(name)) }
+            },
+        )
+    }
+}
+
+/** One Favorite in the editor: its name to rename, and the controls that move or unpin it. */
+@Composable
+private fun FavoriteEditorRow(
+    shownFavorite: ShownFavorite,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onRename: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onUnpin: () -> Unit,
+) {
+    val label = shownFavorite.label
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BasicText(
+            text = label,
+            modifier = Modifier.weight(1f).clickable(onClick = onRename).padding(vertical = 10.dp),
+            style = TextStyle(color = Color.White, fontSize = 20.sp),
+        )
+        if (canMoveUp) {
+            GlyphControl(
+                glyph = "↑",
+                description = stringResource(R.string.favorites_move_up, label),
+                onClick = onMoveUp,
+            )
+        }
+        if (canMoveDown) {
+            GlyphControl(
+                glyph = "↓",
+                description = stringResource(R.string.favorites_move_down, label),
+                onClick = onMoveDown,
+            )
+        }
+        GlyphControl(
+            glyph = "✕",
+            description = stringResource(R.string.favorites_unpin, label),
+            onClick = onUnpin,
         )
     }
 }

@@ -5,6 +5,7 @@ import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -16,6 +17,8 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import com.jonipharju.less.launcher.DrawerOpenDirection
 import com.jonipharju.less.launcher.FakeLauncherRepository
+import com.jonipharju.less.launcher.Favorite
+import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.launcherAppFixture
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
@@ -204,6 +207,119 @@ class DrawerTest {
             compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
 
             compose.onNodeWithContentDescription("Search apps").assertIsNotFocused()
+        }
+    }
+
+    @Test
+    fun longPressOffersPinAppInfoAndUninstall() {
+        val repository = FakeLauncherRepository()
+        repository.install(launcherAppFixture(label = "Clock"))
+        compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+
+        compose.onNodeWithText("Pin to Home").assertExists()
+        compose.onNodeWithText("App info").assertExists()
+        compose.onNodeWithText("Uninstall").assertExists()
+    }
+
+    @Test
+    fun pinningPutsTheAppOnHome() {
+        val repository = FakeLauncherRepository()
+        val clock = launcherAppFixture(label = "Clock")
+        repository.install(clock)
+        compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Pin to Home").performClick()
+
+        compose.runOnIdle {
+            assertEquals(listOf(Favorite(clock.id, position = 0)), repository.favorites.value)
+        }
+    }
+
+    @Test
+    fun pinIsNotOfferedForAnAppAlreadyOnHome() {
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.chooseFavorite(Favorite(clock.id, position = 0))
+            compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+            compose.onNodeWithText("Clock").performTouchInput { longClick() }
+
+            compose.onNodeWithText("Pin to Home").assertDoesNotExist()
+            compose.onNodeWithText("App info").assertExists()
+        }
+    }
+
+    @Test
+    fun pinningANinthFavoriteWarnsAndStillPins() {
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            repeat(FavoritesSoftCap) { index ->
+                val app = launcherAppFixture(label = "App$index")
+                repository.install(app)
+                repository.chooseFavorite(Favorite(app.id, position = index))
+            }
+            val ninth = launcherAppFixture(label = "Ninth")
+            repository.install(ninth)
+            compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+            compose.onNodeWithText("Ninth").performTouchInput { longClick() }
+            compose.onNodeWithText("Pin to Home").performClick()
+
+            compose.onNodeWithText("More than 8 Favorites. Home takes them and starts to scroll.").assertExists()
+            compose.runOnIdle {
+                assertEquals(FavoritesSoftCap + 1, repository.favorites.value.size)
+                assertEquals(
+                    ninth.id,
+                    repository.favorites.value
+                        .last()
+                        .appId,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun pinningAnEighthFavoriteDoesNotWarn() {
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            repeat(FavoritesSoftCap - 1) { index ->
+                val app = launcherAppFixture(label = "App$index")
+                repository.install(app)
+                repository.chooseFavorite(Favorite(app.id, position = index))
+            }
+            val eighth = launcherAppFixture(label = "Eighth")
+            repository.install(eighth)
+            compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+            compose.onNodeWithText("Eighth").performTouchInput { longClick() }
+            compose.onNodeWithText("Pin to Home").performClick()
+
+            compose
+                .onNodeWithText("More than 8 Favorites. Home takes them and starts to scroll.")
+                .assertDoesNotExist()
+            compose.runOnIdle { assertEquals(FavoritesSoftCap, repository.favorites.value.size) }
+        }
+    }
+
+    @Test
+    fun searchMatchesARenamedFavoritesCustomLabel() {
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val messages = launcherAppFixture(label = "Messages")
+            repository.install(messages)
+            repository.install(launcherAppFixture(label = "Maps"))
+            repository.chooseFavorite(Favorite(messages.id, position = 0, customLabel = "Texts"))
+            compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+            compose.onNodeWithContentDescription("Search apps").performTextInput("texts")
+
+            compose.onNodeWithText("Messages").assertExists()
+            compose.onNodeWithText("Maps").assertDoesNotExist()
         }
     }
 

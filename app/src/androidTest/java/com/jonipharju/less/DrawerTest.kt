@@ -2,10 +2,14 @@ package com.jonipharju.less
 
 import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import com.jonipharju.less.launcher.FakeLauncherRepository
@@ -92,5 +96,55 @@ class DrawerTest {
         compose.onNodeWithText("Clock").performClick()
 
         assertEquals(listOf(app), repository.launchedApps)
+    }
+
+    @Test
+    fun searchIsFocusedAndFiltersWithoutLaunching() {
+        val repository = FakeLauncherRepository()
+        repository.install(launcherAppFixture(label = "Camera"))
+        repository.install(launcherAppFixture(label = "Clock"))
+        compose.setContent { Drawer(repository) }
+
+        compose.onNodeWithContentDescription("Search apps").assertIsFocused().performTextInput("clo")
+
+        compose.onNodeWithText("Camera").assertDoesNotExist()
+        compose.onNodeWithText("Clock").assertExists()
+        assertEquals(emptyList<Any>(), repository.launchedApps)
+    }
+
+    @Test
+    fun enterLaunchesTopSearchResult() {
+        val repository = FakeLauncherRepository()
+        val clock = launcherAppFixture(label = "Clock")
+        repository.install(launcherAppFixture(label = "Clock Radio"))
+        repository.install(clock)
+        compose.setContent { Drawer(repository) }
+
+        compose.onNodeWithContentDescription("Search apps").performTextInput("clock")
+        compose.onNodeWithContentDescription("Search apps").performImeAction()
+
+        assertEquals(listOf(clock), repository.launchedApps)
+    }
+
+    @Test
+    fun reopeningDrawerClearsQuery() {
+        val repository = FakeLauncherRepository()
+        repository.install(launcherAppFixture(label = "Camera"))
+        repository.install(launcherAppFixture(label = "Clock"))
+        lateinit var backDispatcher: OnBackPressedDispatcher
+        compose.setContent {
+            backDispatcher =
+                checkNotNull(LocalOnBackPressedDispatcherOwner.current).onBackPressedDispatcher
+            LessLauncher(repository)
+        }
+        compose.onRoot().performTouchInput { swipeUp() }
+        compose.onNodeWithContentDescription("Search apps").performTextInput("clo")
+        compose.onNodeWithText("Camera").assertDoesNotExist()
+
+        compose.runOnIdle { backDispatcher.onBackPressed() }
+        compose.onRoot().performTouchInput { swipeUp() }
+
+        compose.onNodeWithText("Camera").assertExists()
+        compose.onNodeWithText("Clock").assertExists()
     }
 }

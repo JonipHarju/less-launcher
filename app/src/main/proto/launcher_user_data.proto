@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+option java_package = "com.jonipharju.less.launcher.proto";
+option java_multiple_files = true;
+
+message LauncherUserData {
+  repeated StoredFavorite favorites = 1;
+  LauncherSettings settings = 2;
+}
+
+message StoredFavorite {
+  string package_name = 1;
+  string activity_name = 2;
+  int64 profile_serial_number = 3;
+  int32 position = 4;
+  optional string custom_label = 5;
+}
+
+message LauncherSettings {
+  optional IconMode icon_mode_override = 1;
+}
+
+enum IconMode {
+  ICON_MODE_UNSPECIFIED = 0;
+  ICON_MODE_ORIGINAL = 1;
+  ICON_MODE_TINTED = 2;
+  ICON_MODE_HIDDEN = 3;
+}

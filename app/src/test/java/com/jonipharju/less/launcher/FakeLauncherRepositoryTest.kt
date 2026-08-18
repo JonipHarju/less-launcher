@@ -1,9 +1,40 @@
 package com.jonipharju.less.launcher
 
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FakeLauncherRepositoryTest {
+    @Test
+    fun `settings are updated through repository`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val settings = LauncherSettings(iconModeOverride = IconMode.Tinted)
+
+            repository.updateSettings(settings)
+
+            assertEquals(settings, repository.settings.value)
+        }
+
+    @Test
+    fun `chosen Favorites appear in position order`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            val calendar = launcherAppFixture(label = "Calendar")
+
+            repository.chooseFavorite(Favorite(clock.id, position = 1, customLabel = "Time"))
+            repository.chooseFavorite(Favorite(calendar.id, position = 0))
+
+            assertEquals(
+                listOf(
+                    Favorite(calendar.id, position = 0),
+                    Favorite(clock.id, position = 1, customLabel = "Time"),
+                ),
+                repository.favorites.value,
+            )
+        }
+
     @Test
     fun `installed app appears in observable state`() {
         val repository = FakeLauncherRepository()

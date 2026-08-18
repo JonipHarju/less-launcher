@@ -9,8 +9,17 @@ import android.content.pm.LauncherApps
 import android.os.Build
 import android.os.UserHandle
 import android.os.UserManager
+import com.jonipharju.less.launcher.proto.StoredFavorite
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import com.jonipharju.less.launcher.proto.IconMode as StoredIconMode
 
 /** [LauncherRepository] backed by Android's profile-aware launcher APIs. */
 class AndroidLauncherRepository(
@@ -20,10 +29,28 @@ class AndroidLauncherRepository(
     private val context = context.applicationContext
     private val launcherApps = this.context.getSystemService(LauncherApps::class.java)
     private val userManager = this.context.getSystemService(UserManager::class.java)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val userDataStore = this.context.launcherUserDataStore
     private val mutableInstalledApps = MutableStateFlow<List<LauncherApp>>(emptyList())
     private var isClosed = false
 
     override val installedApps = mutableInstalledApps.asStateFlow()
+    override val favorites =
+        userDataStore.data
+            .map { userData -> userData.favoritesList.map(StoredFavorite::toFavorite).sortedBy(Favorite::position) }
+            .stateIn(scope, SharingStarted.Eagerly, emptyList())
+    override val settings =
+        userDataStore.data
+            .map { userData ->
+                LauncherSettings(
+                    iconModeOverride =
+                        if (userData.settings.hasIconModeOverride()) {
+                            userData.settings.iconModeOverride.toIconMode()
+                        } else {
+                            null
+                        },
+                )
+            }.stateIn(scope, SharingStarted.Eagerly, LauncherSettings())
 
     private val launcherCallback =
         object : LauncherApps.Callback() {
@@ -83,11 +110,42 @@ class AndroidLauncherRepository(
         )
     }
 
+    override suspend fun chooseFavorite(favorite: Favorite) {
+        userDataStore.updateData { userData ->
+            userData
+                .toBuilder()
+                .clearFavorites()
+                .addAllFavorites(
+                    (userData.favoritesList.filterNot { it.hasSameAppIdAs(favorite.appId) } + favorite.toProto())
+                        .sortedBy(StoredFavorite::getPosition),
+                ).build()
+        }
+    }
+
+    override suspend fun dismissFavorite(appId: LauncherAppId) {
+        userDataStore.updateData { userData ->
+            userData
+                .toBuilder()
+                .clearFavorites()
+                .addAllFavorites(userData.favoritesList.filterNot { it.hasSameAppIdAs(appId) })
+                .build()
+        }
+    }
+
+    override suspend fun updateSettings(settings: LauncherSettings) {
+        userDataStore.updateData { userData ->
+            val storedSettings = userData.settings.toBuilder().clearIconModeOverride()
+            settings.iconModeOverride?.let { storedSettings.iconModeOverride = it.toProto() }
+            userData.toBuilder().setSettings(storedSettings).build()
+        }
+    }
+
     override fun close() {
         if (isClosed) return
 
         launcherApps.unregisterCallback(launcherCallback)
         context.unregisterReceiver(profileAvailabilityReceiver)
+        scope.cancel()
         isClosed = true
     }
 
@@ -119,6 +177,45 @@ class AndroidLauncherRepository(
         }
     }
 }
+
+private fun Favorite.toProto(): StoredFavorite =
+    StoredFavorite
+        .newBuilder()
+        .setPackageName(appId.packageName)
+        .setActivityName(appId.activityName)
+        .setProfileSerialNumber(appId.profileSerialNumber)
+        .setPosition(position)
+        .also { builder -> customLabel?.let(builder::setCustomLabel) }
+        .build()
+
+private fun StoredFavorite.toFavorite() =
+    Favorite(
+        appId = LauncherAppId(packageName, activityName, profileSerialNumber),
+        position = position,
+        customLabel = if (hasCustomLabel()) customLabel else null,
+    )
+
+private fun StoredFavorite.hasSameAppIdAs(appId: LauncherAppId) =
+    packageName == appId.packageName &&
+        activityName == appId.activityName &&
+        profileSerialNumber == appId.profileSerialNumber
+
+private fun IconMode.toProto() =
+    when (this) {
+        IconMode.Original -> StoredIconMode.ICON_MODE_ORIGINAL
+        IconMode.Tinted -> StoredIconMode.ICON_MODE_TINTED
+        IconMode.Hidden -> StoredIconMode.ICON_MODE_HIDDEN
+    }
+
+private fun StoredIconMode.toIconMode(): IconMode? =
+    when (this) {
+        StoredIconMode.ICON_MODE_ORIGINAL -> IconMode.Original
+        StoredIconMode.ICON_MODE_TINTED -> IconMode.Tinted
+        StoredIconMode.ICON_MODE_HIDDEN -> IconMode.Hidden
+        StoredIconMode.ICON_MODE_UNSPECIFIED,
+        StoredIconMode.UNRECOGNIZED,
+        -> null
+    }
 
 private fun profileAvailabilityIntentFilter() =
     IntentFilter().apply {

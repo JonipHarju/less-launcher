@@ -9,11 +9,14 @@ class FakeLauncherRepositoryTest {
     fun `settings are updated through repository`() =
         runBlocking {
             val repository = FakeLauncherRepository()
-            val settings = LauncherSettings(iconModeOverride = IconMode.Tinted)
 
-            repository.updateSettings(settings)
+            repository.updateSettings { it.copy(iconModeOverride = IconMode.Tinted) }
+            repository.updateSettings { it.copy(homeAlignment = HomeAlignment.Centred) }
 
-            assertEquals(settings, repository.settings.value)
+            assertEquals(
+                LauncherSettings(iconModeOverride = IconMode.Tinted, homeAlignment = HomeAlignment.Centred),
+                repository.settings.value,
+            )
         }
 
     @Test

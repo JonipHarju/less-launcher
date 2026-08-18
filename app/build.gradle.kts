@@ -52,6 +52,9 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.ext.junit)
+    // Compose's test artifact still pulls Espresso 3.5, which reflects on an
+    // InputManager method Android 16 removed. Every touch injection fails without this.
+    androidTestImplementation(libs.androidx.test.espresso.core)
 }
 
 protobuf {

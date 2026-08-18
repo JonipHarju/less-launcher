@@ -18,6 +18,9 @@ message StoredFavorite {
 
 message LauncherSettings {
   optional IconMode icon_mode_override = 1;
+  DrawerOpenDirection drawer_open_direction = 2;
+  HomeAlignment home_alignment = 3;
+  optional bool opens_keyboard_with_drawer = 4;
 }
 
 enum IconMode {
@@ -25,4 +28,16 @@ enum IconMode {
   ICON_MODE_ORIGINAL = 1;
   ICON_MODE_TINTED = 2;
   ICON_MODE_HIDDEN = 3;
+}
+
+enum DrawerOpenDirection {
+  DRAWER_OPEN_DIRECTION_UNSPECIFIED = 0;
+  DRAWER_OPEN_DIRECTION_SWIPE_UP = 1;
+  DRAWER_OPEN_DIRECTION_SWIPE_DOWN = 2;
+}
+
+enum HomeAlignment {
+  HOME_ALIGNMENT_UNSPECIFIED = 0;
+  HOME_ALIGNMENT_LEFT = 1;
+  HOME_ALIGNMENT_CENTRED = 2;
 }

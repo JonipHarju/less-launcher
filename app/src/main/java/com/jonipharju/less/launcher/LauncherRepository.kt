@@ -24,12 +24,27 @@ data class Favorite(
 
 data class LauncherSettings(
     val iconModeOverride: IconMode? = null,
+    val drawerOpenDirection: DrawerOpenDirection = DrawerOpenDirection.SwipeUp,
+    val homeAlignment: HomeAlignment = HomeAlignment.Left,
+    val opensKeyboardWithDrawer: Boolean = true,
 )
 
 enum class IconMode {
     Original,
     Tinted,
     Hidden,
+}
+
+/** The swipe on Home that opens the Drawer. The inverse swipe closes it again. */
+enum class DrawerOpenDirection {
+    SwipeUp,
+    SwipeDown,
+}
+
+/** Where Home lays out its clock, date, and Favorites across the width of the screen. */
+enum class HomeAlignment {
+    Left,
+    Centred,
 }
 
 /** The boundary between launcher behavior and Android's launcher APIs. */
@@ -44,7 +59,11 @@ interface LauncherRepository {
 
     suspend fun dismissFavorite(appId: LauncherAppId)
 
-    suspend fun updateSettings(settings: LauncherSettings)
+    /**
+     * Applies [update] to whatever is stored at the time of the write, so that two settings
+     * changed in quick succession cannot each overwrite the other with a stale record.
+     */
+    suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings)
 }
 
 internal fun Iterable<LauncherApp>.alphabetized(): List<LauncherApp> =

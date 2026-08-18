@@ -44,8 +44,8 @@ class FakeLauncherRepository : LauncherRepository {
         mutableFavorites.value = mutableFavorites.value.filterNot { it.appId == appId }
     }
 
-    override suspend fun updateSettings(settings: LauncherSettings) {
-        mutableSettings.value = settings
+    override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) {
+        mutableSettings.value = update(mutableSettings.value)
     }
 }
 

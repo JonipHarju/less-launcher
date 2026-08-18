@@ -131,6 +131,45 @@ class FakeLauncherRepositoryTest {
     }
 
     @Test
+    fun `uninstalling an app removes its Favorite`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val app = launcherAppFixture(label = "Clock")
+            repository.install(app)
+            repository.chooseFavorite(Favorite(app.id, position = 0))
+
+            repository.uninstall(app.id)
+
+            assertEquals(emptyList<Favorite>(), repository.favorites.value)
+        }
+
+    @Test
+    fun `an unavailable app keeps its Favorite until it returns or is dismissed`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val app = launcherAppFixture(label = "Clock")
+            val favorite = Favorite(app.id, position = 0, customLabel = "Time")
+            repository.install(app)
+            repository.chooseFavorite(favorite)
+
+            repository.makeUnavailable(app.id)
+
+            assertEquals(emptyList<LauncherApp>(), repository.installedApps.value)
+            assertEquals(listOf(favorite), repository.favorites.value)
+
+            repository.makeAvailable(app)
+
+            assertEquals(listOf(app), repository.installedApps.value)
+            assertEquals(listOf(favorite), repository.favorites.value)
+
+            repository.makeUnavailable(app.id)
+            repository.dismissFavorite(app.id)
+            repository.makeAvailable(app)
+
+            assertEquals(emptyList<Favorite>(), repository.favorites.value)
+        }
+
+    @Test
     fun `updated app replaces its previous state`() {
         val repository = FakeLauncherRepository()
         val app = launcherAppFixture(label = "Clock")

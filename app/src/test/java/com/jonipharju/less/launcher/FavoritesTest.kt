@@ -131,15 +131,17 @@ class FavoritesTest {
     }
 
     @Test
-    fun `a Favorite whose app is not installed is not shown`() {
+    fun `a Favorite whose app is unavailable is shown as a Tombstone in place`() {
         val clock = launcherAppFixture("Clock")
-        val uninstalled = launcherAppFixture("Camera")
+        val unavailable = launcherAppFixture("Camera")
         val favorites =
-            listOf(Favorite(clock.id, position = 0), Favorite(uninstalled.id, position = 1))
+            listOf(Favorite(clock.id, position = 0), Favorite(unavailable.id, position = 1))
 
         val shown = favorites.shownAmong(listOf(clock))
 
-        assertEquals(listOf(clock), shown.map(ShownFavorite::app))
+        assertEquals(listOf(clock.id, unavailable.id), shown.map { it.favorite.appId })
+        assertEquals(listOf(clock, null), shown.map(ShownFavorite::app))
+        assertEquals(listOf("Clock", "Camera"), shown.map(ShownFavorite::label))
     }
 
     @Test

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import com.jonipharju.less.launcher.proto.DrawerOpenDirection as StoredDrawerOpenDirection
 import com.jonipharju.less.launcher.proto.HomeAlignment as StoredHomeAlignment
 import com.jonipharju.less.launcher.proto.IconMode as StoredIconMode
@@ -64,7 +65,12 @@ class AndroidLauncherRepository(
             override fun onPackageRemoved(
                 packageName: String,
                 user: UserHandle,
-            ) = refresh()
+            ) {
+                scope.launch {
+                    removeFavoritesForUninstalledPackage(packageName, user)
+                    refresh()
+                }
+            }
 
             override fun onPackagesAvailable(
                 packageNames: Array<out String>,
@@ -152,6 +158,26 @@ class AndroidLauncherRepository(
                 .clearFavorites()
                 .addAllFavorites(userData.favoritesList.filterNot { it.hasSameAppIdAs(appId) })
                 .build()
+        }
+    }
+
+    private suspend fun removeFavoritesForUninstalledPackage(
+        packageName: String,
+        user: UserHandle,
+    ) {
+        val profileSerialNumber = userManager.getSerialNumberForUser(user)
+        if (profileSerialNumber < 0) return
+
+        userDataStore.updateData { userData ->
+            userData
+                .toBuilder()
+                .clearFavorites()
+                .addAllFavorites(
+                    userData.favoritesList.filterNot { favorite ->
+                        favorite.packageName == packageName &&
+                            favorite.profileSerialNumber == profileSerialNumber
+                    },
+                ).build()
         }
     }
 

@@ -104,56 +104,75 @@ internal fun Home(
                 // Keyed by the app rather than by the row it currently occupies, so that a row
                 // being dragged keeps its identity — and with it the live touch — as it moves.
                 key(shownFavorite.favorite.appId) {
-                    FavoriteRow(
-                        shownFavorite = shownFavorite,
-                        textAlign = textAlign,
-                        onLaunch = { repository.launch(shownFavorite.app) },
-                        onCurate = { curated = shownFavorite.favorite.appId },
-                        onDragBy = { rows ->
-                            val order = draggedOrder ?: shown.map { it.favorite.appId }
-                            val from = order.indexOf(shownFavorite.favorite.appId)
-                            draggedOrder = order.moved(from, (from + rows).coerceIn(order.indices))
-                        },
-                        onDragEnd = {
-                            draggedOrder?.let { order ->
-                                scope.launch {
-                                    repository.reorderFavorites(order)
-                                    draggedOrder = null
+                    if (shownFavorite.app == null) {
+                        TombstoneRow(
+                            shownFavorite = shownFavorite,
+                            textAlign = textAlign,
+                            onDismiss = { curated = shownFavorite.favorite.appId },
+                        )
+                    } else {
+                        FavoriteRow(
+                            shownFavorite = shownFavorite,
+                            textAlign = textAlign,
+                            onLaunch = { repository.launch(shownFavorite.app) },
+                            onCurate = { curated = shownFavorite.favorite.appId },
+                            onDragBy = { rows ->
+                                val order = draggedOrder ?: shown.map { it.favorite.appId }
+                                val from = order.indexOf(shownFavorite.favorite.appId)
+                                draggedOrder = order.moved(from, (from + rows).coerceIn(order.indices))
+                            },
+                            onDragEnd = {
+                                draggedOrder?.let { order ->
+                                    scope.launch {
+                                        repository.reorderFavorites(order)
+                                        draggedOrder = null
+                                    }
                                 }
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
             }
         }
     }
 
     shown.withId(curated)?.let { shownFavorite ->
-        FavoriteMenu(
-            shownFavorite = shownFavorite,
-            onDismiss = { curated = null },
-            onRename = {
-                curated = null
-                renaming = shownFavorite.favorite.appId
-            },
-            onUnpin = {
-                curated = null
-                scope.launch { repository.dismissFavorite(shownFavorite.favorite.appId) }
-            },
-            onShowAppInfo = {
-                curated = null
-                repository.showAppInfo(shownFavorite.favorite.appId)
-            },
-            onUninstall = {
-                curated = null
-                repository.requestUninstall(shownFavorite.favorite.appId)
-            },
-        )
+        if (shownFavorite.app == null) {
+            TombstoneMenu(
+                shownFavorite = shownFavorite,
+                onDismiss = { curated = null },
+                onDismissTombstone = {
+                    curated = null
+                    scope.launch { repository.dismissFavorite(shownFavorite.favorite.appId) }
+                },
+            )
+        } else {
+            FavoriteMenu(
+                shownFavorite = shownFavorite,
+                onDismiss = { curated = null },
+                onRename = {
+                    curated = null
+                    renaming = shownFavorite.favorite.appId
+                },
+                onUnpin = {
+                    curated = null
+                    scope.launch { repository.dismissFavorite(shownFavorite.favorite.appId) }
+                },
+                onShowAppInfo = {
+                    curated = null
+                    repository.showAppInfo(shownFavorite.favorite.appId)
+                },
+                onUninstall = {
+                    curated = null
+                    repository.requestUninstall(shownFavorite.favorite.appId)
+                },
+            )
+        }
     }
 
     shown.withId(renaming)?.let { shownFavorite ->
         RenameDialog(
-            appLabel = shownFavorite.app.label,
+            appLabel = shownFavorite.appLabel,
             currentLabel = shownFavorite.label,
             onDismiss = { renaming = null },
             onRename = { name ->
@@ -162,6 +181,31 @@ internal fun Home(
             },
         )
     }
+}
+
+/** An unavailable Favorite, shown in place but offering only dismissal. */
+@Composable
+private fun TombstoneRow(
+    shownFavorite: ShownFavorite,
+    textAlign: TextAlign,
+    onDismiss: () -> Unit,
+) {
+    BasicText(
+        text = shownFavorite.label,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(FavoriteRowHeight)
+                .wrapContentHeight(Alignment.CenterVertically)
+                .onTapLongPressOrDrag(
+                    key = shownFavorite.favorite.appId,
+                    onTap = {},
+                    onLongPress = onDismiss,
+                    onDrag = {},
+                    onDragEnd = {},
+                ),
+        style = TextStyle(color = Color.Gray, fontSize = 24.sp, textAlign = textAlign),
+    )
 }
 
 /** One Favorite on Home: tap to launch it, long-press to curate it, drag to move it. */
@@ -228,7 +272,19 @@ private fun FavoriteMenu(
     }
 }
 
-/** The Favorite [appId] names, or null where it names none — an app just uninstalled, say. */
+/** The single action available for a Tombstone. */
+@Composable
+private fun TombstoneMenu(
+    shownFavorite: ShownFavorite,
+    onDismiss: () -> Unit,
+    onDismissTombstone: () -> Unit,
+) {
+    AppMenu(title = shownFavorite.label, onDismiss = onDismiss) {
+        MenuAction(label = stringResource(R.string.tombstone_dismiss), onClick = onDismissTombstone)
+    }
+}
+
+/** The shown Favorite [appId] names, or null where it names none. */
 private fun List<ShownFavorite>.withId(appId: LauncherAppId?): ShownFavorite? = firstOrNull { it.favorite.appId == appId }
 
 /** The same Favorites arranged as [order] has them, for the length of a drag. */

@@ -47,21 +47,30 @@ private fun List<Favorite>.renumbered(): List<Favorite> = mapIndexed { index, fa
 /** A Favorite, the installed app it points at, and the label Home shows for the pair. */
 internal data class ShownFavorite(
     val favorite: Favorite,
-    val app: LauncherApp,
+    val app: LauncherApp?,
 ) {
     /** The custom label the user gave this Favorite, or the app's own name where they gave none. */
-    val label: String get() = favorite.customLabel ?: app.label
+    val label: String
+        get() =
+            favorite.customLabel
+                ?: app?.label
+                ?: favorite.appId.packageName
+                    .substringAfterLast('.')
+                    .replaceFirstChar { it.uppercase() }
+
+    /** The app's own name where known, falling back to the Tombstone's visible name. */
+    val appLabel: String get() = app?.label ?: label
 }
 
 /**
- * The Favorites whose apps are installed, in position order. A Favorite whose app is missing
- * is left out rather than shown as a name that launches nothing.
+ * The Favorites in position order, paired with their installed app where it is available.
+ * A Favorite whose app is unavailable remains in place as a Tombstone.
  */
 internal fun List<Favorite>.shownAmong(installedApps: List<LauncherApp>): List<ShownFavorite> {
     val installedById = installedApps.associateBy(LauncherApp::id)
 
-    return sortedBy(Favorite::position).mapNotNull { favorite ->
-        installedById[favorite.appId]?.let { app -> ShownFavorite(favorite, app) }
+    return sortedBy(Favorite::position).map { favorite ->
+        ShownFavorite(favorite, installedById[favorite.appId])
     }
 }
 

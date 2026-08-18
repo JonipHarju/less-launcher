@@ -21,6 +21,7 @@
     <string name="favorite_pin">Pin to Home</string>
     <string name="favorite_unpin">Unpin from Home</string>
     <string name="favorite_rename">Rename</string>
+    <string name="tombstone_dismiss">Dismiss Tombstone</string>
     <string name="app_info">App info</string>
     <string name="app_uninstall">Uninstall</string>
     <string name="notice_dismiss">Got it</string>

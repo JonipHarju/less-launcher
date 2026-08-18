@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 
+/** Android opens this activity when Less is selected as the default Home app. */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,6 +24,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Temporary Home content that leaves the system Wallpaper visible behind it. */
 @Composable
 private fun HomePlaceholder() {
     Box(

@@ -8,7 +8,6 @@ import androidx.compose.ui.test.performClick
 import com.jonipharju.less.launcher.FakeLauncherRepository
 import com.jonipharju.less.launcher.Favorite
 import com.jonipharju.less.launcher.HomeAlignment
-import com.jonipharju.less.launcher.LauncherSettings
 import com.jonipharju.less.launcher.launcherAppFixture
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -80,7 +79,7 @@ class HomeTest {
     }
 
     @Test
-    fun showsNeitherTheAppListNorTheSearchField() {
+    fun showsNoInstalledAppsAndNoSearchField() {
         val repository = FakeLauncherRepository()
         repository.install(launcherAppFixture("Camera"))
 
@@ -115,7 +114,7 @@ class HomeTest {
         val whenLeftAligned = compose.onNodeWithText("14:35").getUnclippedBoundsInRoot().left
 
         compose.runOnIdle {
-            runBlocking { repository.updateSettings(LauncherSettings(homeAlignment = HomeAlignment.Centred)) }
+            runBlocking { repository.updateSettings { it.copy(homeAlignment = HomeAlignment.Centred) } }
         }
 
         val whenCentred = compose.onNodeWithText("14:35").getUnclippedBoundsInRoot().left

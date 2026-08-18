@@ -36,14 +36,12 @@ internal fun Settings(
 ) {
     val settings by repository.settings.collectAsState()
     val scope = rememberCoroutineScope()
-    val apply: (LauncherSettings) -> Unit = { changed -> scope.launch { repository.updateSettings(changed) } }
+    val store: ((LauncherSettings) -> LauncherSettings) -> Unit = { change ->
+        scope.launch { repository.updateSettings(change) }
+    }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        TopBar {
             BasicText(
                 text = stringResource(R.string.settings),
                 modifier = Modifier.padding(horizontal = 12.dp),
@@ -56,77 +54,76 @@ internal fun Settings(
             )
         }
 
-        SettingGroup(title = stringResource(R.string.settings_drawer_opens)) {
-            DrawerOpenDirection.entries.forEach { direction ->
-                Choice(
-                    label = stringResource(direction.labelResource()),
-                    selected = settings.drawerOpenDirection == direction,
-                    onSelect = { apply(settings.copy(drawerOpenDirection = direction)) },
-                )
-            }
-        }
+        ChoiceGroup(
+            title = stringResource(R.string.settings_drawer_opens),
+            options = DrawerOpenDirection.entries,
+            chosen = settings.drawerOpenDirection,
+            label = { direction -> stringResource(direction.labelResource()) },
+            onChoose = { direction -> store { it.copy(drawerOpenDirection = direction) } },
+        )
 
-        SettingGroup(title = stringResource(R.string.settings_home_alignment)) {
-            HomeAlignment.entries.forEach { alignment ->
-                Choice(
-                    label = stringResource(alignment.labelResource()),
-                    selected = settings.homeAlignment == alignment,
-                    onSelect = { apply(settings.copy(homeAlignment = alignment)) },
-                )
-            }
-        }
+        ChoiceGroup(
+            title = stringResource(R.string.settings_home_alignment),
+            options = HomeAlignment.entries,
+            chosen = settings.homeAlignment,
+            label = { alignment -> stringResource(alignment.labelResource()) },
+            onChoose = { alignment -> store { it.copy(homeAlignment = alignment) } },
+        )
 
-        SettingGroup(title = stringResource(R.string.settings_keyboard)) {
-            Switch(
-                label = stringResource(R.string.settings_open_keyboard_with_drawer),
-                checked = settings.opensKeyboardWithDrawer,
-                onCheckedChange = { checked -> apply(settings.copy(opensKeyboardWithDrawer = checked)) },
-            )
-        }
+        GroupTitle(stringResource(R.string.settings_keyboard))
+        OnOff(
+            label = stringResource(R.string.settings_open_keyboard_with_drawer),
+            on = settings.opensKeyboardWithDrawer,
+            onChange = { on -> store { it.copy(opensKeyboardWithDrawer = on) } },
+        )
+    }
+}
+
+/** One titled setting whose value is picked from a short, fixed list. */
+@Composable
+private fun <T> ChoiceGroup(
+    title: String,
+    options: List<T>,
+    chosen: T,
+    label: @Composable (T) -> String,
+    onChoose: (T) -> Unit,
+) {
+    GroupTitle(title)
+    options.forEach { option ->
+        val isChosen = option == chosen
+        BasicText(
+            text = label(option),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = isChosen, onClick = { onChoose(option) })
+                    .padding(horizontal = 24.dp, vertical = 14.dp),
+            style = TextStyle(color = if (isChosen) Color.White else Color.Gray, fontSize = 20.sp),
+        )
     }
 }
 
 @Composable
-private fun SettingGroup(
-    title: String,
-    options: @Composable () -> Unit,
-) {
+private fun GroupTitle(title: String) {
     BasicText(
         text = title,
         modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
         style = TextStyle(color = Color.Gray, fontSize = 14.sp),
     )
-    options()
 }
 
+/** One setting that is simply on or off, its state spelled out beside its label. */
 @Composable
-private fun Choice(
+private fun OnOff(
     label: String,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    BasicText(
-        text = label,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .selectable(selected = selected, onClick = onSelect)
-                .padding(horizontal = 24.dp, vertical = 14.dp),
-        style = TextStyle(color = if (selected) Color.White else Color.Gray, fontSize = 20.sp),
-    )
-}
-
-@Composable
-private fun Switch(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+    on: Boolean,
+    onChange: (Boolean) -> Unit,
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .toggleable(value = checked, onValueChange = onCheckedChange)
+                .toggleable(value = on, onValueChange = onChange)
                 .padding(horizontal = 24.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -136,7 +133,7 @@ private fun Switch(
             style = TextStyle(color = Color.White, fontSize = 20.sp),
         )
         BasicText(
-            text = stringResource(if (checked) R.string.on else R.string.off),
+            text = stringResource(if (on) R.string.settings_on else R.string.settings_off),
             style = TextStyle(color = Color.LightGray, fontSize = 20.sp),
         )
     }

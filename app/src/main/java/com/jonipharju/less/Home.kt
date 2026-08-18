@@ -41,8 +41,8 @@ internal fun Home(
         modifier =
             Modifier
                 .fillMaxSize()
-                .onVerticalSwipe { dragDistance, threshold ->
-                    if (drawerOpenDirection.opensDrawer(dragDistance, threshold)) onOpenDrawer()
+                .onVerticalSwipe { swipe ->
+                    if (drawerOpenDirection.opensDrawer(swipe)) onOpenDrawer()
                 },
         contentAlignment = Alignment.Center,
     ) {

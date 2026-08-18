@@ -11,16 +11,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import com.jonipharju.less.launcher.VerticalSwipe
 import kotlin.math.abs
 
 /** How far a drag has to travel before it counts as a swipe rather than a stray touch. */
 private val SwipeThreshold = 64.dp
 
-/**
- * Reports every completed vertical drag as the distance it travelled in pixels — negative
- * upwards — together with the distance that counts as a swipe.
- */
-internal fun Modifier.onVerticalSwipe(onSwipe: (dragDistance: Float, threshold: Float) -> Unit): Modifier =
+/** Reports every completed vertical drag, whether or not it went far enough to be a swipe. */
+internal fun Modifier.onVerticalSwipe(onSwipe: (VerticalSwipe) -> Unit): Modifier =
     pointerInput(onSwipe) {
         val threshold = SwipeThreshold.toPx()
         var dragDistance = 0f
@@ -30,7 +28,7 @@ internal fun Modifier.onVerticalSwipe(onSwipe: (dragDistance: Float, threshold: 
                 change.consume()
                 dragDistance += dragAmount
             },
-            onDragEnd = { onSwipe(dragDistance, threshold) },
+            onDragEnd = { onSwipe(VerticalSwipe(dragDistance, threshold)) },
         )
     }
 
@@ -39,7 +37,7 @@ internal fun Modifier.onVerticalSwipe(onSwipe: (dragDistance: Float, threshold: 
  * edge, so that a swipe over a list still reads as a swipe rather than as a dead scroll.
  */
 @Composable
-internal fun rememberOverscrollSwipe(onSwipe: (dragDistance: Float, threshold: Float) -> Unit): NestedScrollConnection {
+internal fun rememberOverscrollSwipe(onSwipe: (VerticalSwipe) -> Unit): NestedScrollConnection {
     val threshold = with(LocalDensity.current) { SwipeThreshold.toPx() }
 
     return remember(onSwipe, threshold) {
@@ -57,7 +55,7 @@ internal fun rememberOverscrollSwipe(onSwipe: (dragDistance: Float, threshold: F
                 if (consumed.y != 0f) dragDistance = 0f
                 dragDistance += available.y
                 if (abs(dragDistance) >= threshold) {
-                    onSwipe(dragDistance, threshold)
+                    onSwipe(VerticalSwipe(dragDistance, threshold))
                     dragDistance = 0f
                 }
                 return Offset.Zero

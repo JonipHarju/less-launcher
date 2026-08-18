@@ -1,11 +1,9 @@
 package com.jonipharju.less
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,6 +34,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jonipharju.less.launcher.LauncherRepository
+import com.jonipharju.less.launcher.VerticalSwipe
 import com.jonipharju.less.launcher.closesDrawer
 import com.jonipharju.less.launcher.rankedFor
 
@@ -58,27 +57,27 @@ internal fun Drawer(
         if (opensKeyboard) searchFocusRequester.requestFocus()
     }
 
-    val closeOnSwipe: (Float, Float) -> Unit = { dragDistance, threshold ->
-        if (drawerOpenDirection.closesDrawer(dragDistance, threshold)) onClose()
+    val closeOnSwipe: (VerticalSwipe) -> Unit = { swipe ->
+        if (drawerOpenDirection.closesDrawer(swipe)) onClose()
     }
     // Over the top bar the swipe is an ordinary drag; over the list it is whatever
     // scrolling the list had no room left to consume.
     val closeOnOverscroll = rememberOverscrollSwipe(closeOnSwipe)
 
+    // The top bar and the search field stay put, so the closing swipe always has somewhere
+    // to land: over the list it only survives as overscroll the list had no room to use.
     Column(modifier = Modifier.fillMaxSize().onVerticalSwipe(closeOnSwipe)) {
         DrawerTopBar(onClose = onClose, onOpenSettings = onOpenSettings)
+        SearchField(
+            query = query,
+            onQueryChange = { query = it },
+            onSearch = { rankedApps.firstOrNull()?.let(repository::launch) },
+            focusRequester = searchFocusRequester,
+        )
         LazyColumn(
             modifier = Modifier.fillMaxSize().nestedScroll(closeOnOverscroll),
             contentPadding = PaddingValues(bottom = 32.dp),
         ) {
-            item(key = "search") {
-                SearchField(
-                    query = query,
-                    onQueryChange = { query = it },
-                    onSearch = { rankedApps.firstOrNull()?.let(repository::launch) },
-                    focusRequester = searchFocusRequester,
-                )
-            }
             items(
                 items = rankedApps,
                 key = { app ->
@@ -108,10 +107,7 @@ private fun DrawerTopBar(
     onClose: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 24.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
+    TopBar {
         GlyphControl(
             glyph = "✕",
             description = stringResource(R.string.drawer_close),

@@ -127,9 +127,10 @@ class AndroidLauncherRepository(
         }
     }
 
-    override suspend fun updateSettings(settings: LauncherSettings) {
+    override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) {
         userDataStore.updateData { userData ->
-            userData.toBuilder().setSettings(settings.toProto()).build()
+            val updated = update(userData.settings.toLauncherSettings())
+            userData.toBuilder().setSettings(updated.mergedInto(userData.settings)).build()
         }
     }
 
@@ -205,9 +206,11 @@ private fun StoredLauncherSettings.toLauncherSettings(): LauncherSettings {
     )
 }
 
-private fun LauncherSettings.toProto(): StoredLauncherSettings =
-    StoredLauncherSettings
-        .newBuilder()
+/** Writes onto [stored] rather than over it, so a field this type does not model survives. */
+private fun LauncherSettings.mergedInto(stored: StoredLauncherSettings): StoredLauncherSettings =
+    stored
+        .toBuilder()
+        .clearIconModeOverride()
         .setDrawerOpenDirection(drawerOpenDirection.toProto())
         .setHomeAlignment(homeAlignment.toProto())
         .setOpensKeyboardWithDrawer(opensKeyboardWithDrawer)

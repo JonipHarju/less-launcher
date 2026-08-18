@@ -59,7 +59,11 @@ interface LauncherRepository {
 
     suspend fun dismissFavorite(appId: LauncherAppId)
 
-    suspend fun updateSettings(settings: LauncherSettings)
+    /**
+     * Applies [update] to whatever is stored at the time of the write, so that two settings
+     * changed in quick succession cannot each overwrite the other with a stale record.
+     */
+    suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings)
 }
 
 internal fun Iterable<LauncherApp>.alphabetized(): List<LauncherApp> =

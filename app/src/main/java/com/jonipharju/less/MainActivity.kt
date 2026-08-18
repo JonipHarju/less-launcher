@@ -96,7 +96,7 @@ internal fun LessLauncher(
     }
 
     BackHandler(enabled = surface != LauncherSurface.Home) {
-        surface = surface.closesTo()
+        surface = if (surface == LauncherSurface.Settings) LauncherSurface.Drawer else LauncherSurface.Home
     }
 
     when (surface) {
@@ -145,11 +145,3 @@ private enum class LauncherSurface {
     Drawer,
     Settings,
 }
-
-/** Where the back gesture and each surface's close control lead. */
-private fun LauncherSurface.closesTo() =
-    when (this) {
-        LauncherSurface.Home -> LauncherSurface.Home
-        LauncherSurface.Drawer -> LauncherSurface.Home
-        LauncherSurface.Settings -> LauncherSurface.Drawer
-    }

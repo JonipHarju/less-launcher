@@ -16,7 +16,6 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import com.jonipharju.less.launcher.DrawerOpenDirection
 import com.jonipharju.less.launcher.FakeLauncherRepository
-import com.jonipharju.less.launcher.LauncherSettings
 import com.jonipharju.less.launcher.launcherAppFixture
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
@@ -184,7 +183,7 @@ class DrawerTest {
         runBlocking {
             val repository = FakeLauncherRepository()
             repository.install(launcherAppFixture(label = "Clock"))
-            repository.updateSettings(LauncherSettings(drawerOpenDirection = DrawerOpenDirection.SwipeDown))
+            repository.updateSettings { it.copy(drawerOpenDirection = DrawerOpenDirection.SwipeDown) }
             compose.setContent { LessLauncher(repository) }
 
             compose.onRoot().performTouchInput { swipeUp() }
@@ -200,7 +199,7 @@ class DrawerTest {
         runBlocking {
             val repository = FakeLauncherRepository()
             repository.install(launcherAppFixture(label = "Clock"))
-            repository.updateSettings(LauncherSettings(opensKeyboardWithDrawer = false))
+            repository.updateSettings { it.copy(opensKeyboardWithDrawer = false) }
 
             compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
 

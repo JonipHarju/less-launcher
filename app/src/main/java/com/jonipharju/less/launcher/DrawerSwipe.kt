@@ -1,23 +1,23 @@
 package com.jonipharju.less.launcher
 
 /**
- * Whether a vertical drag of [dragDistance] pixels — negative upwards — travelled far
- * enough past [threshold], in the direction the user chose, to open the Drawer.
+ * A completed vertical drag: how far it travelled in pixels — negative upwards — and the
+ * distance a drag has to cover before it counts as a swipe rather than a stray touch.
  */
-internal fun DrawerOpenDirection.opensDrawer(
-    dragDistance: Float,
-    threshold: Float,
-): Boolean =
+internal data class VerticalSwipe(
+    val distance: Float,
+    val threshold: Float,
+)
+
+/** Whether [swipe] went far enough, the way the user chose, to open the Drawer. */
+internal fun DrawerOpenDirection.opensDrawer(swipe: VerticalSwipe): Boolean =
     when (this) {
-        DrawerOpenDirection.SwipeUp -> dragDistance <= -threshold
-        DrawerOpenDirection.SwipeDown -> dragDistance >= threshold
+        DrawerOpenDirection.SwipeUp -> swipe.distance <= -swipe.threshold
+        DrawerOpenDirection.SwipeDown -> swipe.distance >= swipe.threshold
     }
 
-/** Whether the same drag is the inverse swipe, which closes the Drawer again. */
-internal fun DrawerOpenDirection.closesDrawer(
-    dragDistance: Float,
-    threshold: Float,
-): Boolean = inverse().opensDrawer(dragDistance, threshold)
+/** Whether [swipe] is the inverse swipe, which closes the Drawer again. */
+internal fun DrawerOpenDirection.closesDrawer(swipe: VerticalSwipe): Boolean = inverse().opensDrawer(swipe)
 
 private fun DrawerOpenDirection.inverse() =
     when (this) {

@@ -17,6 +17,25 @@ The full list of installed apps, opened from Home and dismissed back to it.
 Carries the search field and the entry point to Settings.
 _Avoid_: app list, menu, all-apps, app tray
 
+**Settings**:
+The one screen holding every option, reached from the gear in the Drawer's top
+bar and dismissed back to it. There is exactly one; options are never scattered
+across surfaces.
+_Avoid_: preferences, options screen, config
+
+### Behaviour
+
+**Drawer Open Direction**:
+The swipe on Home that opens the Drawer — up or down — and, inverted, the swipe
+that closes it. Stored, not hard-coded, so it can change without restructuring
+the surfaces.
+_Avoid_: swipe gesture, open gesture
+
+**Home Alignment**:
+Whether Home lays its clock, date, and Favorites out from the left edge or
+centred across the width. The user's choice, and the only thing that moves them.
+_Avoid_: gravity, text alignment, layout mode
+
 ### Apps
 
 **Favorite**:

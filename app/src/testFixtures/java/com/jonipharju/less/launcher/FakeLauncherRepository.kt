@@ -8,11 +8,15 @@ class FakeLauncherRepository : LauncherRepository {
     private val mutableFavorites = MutableStateFlow<List<Favorite>>(emptyList())
     private val mutableSettings = MutableStateFlow(LauncherSettings())
     private val mutableLaunchedApps = mutableListOf<LauncherApp>()
+    private val mutableAppInfoShownFor = mutableListOf<LauncherAppId>()
+    private val mutableUninstallsRequestedFor = mutableListOf<LauncherAppId>()
 
     override val installedApps = mutableInstalledApps.asStateFlow()
     override val favorites = mutableFavorites.asStateFlow()
     override val settings = mutableSettings.asStateFlow()
     val launchedApps: List<LauncherApp> = mutableLaunchedApps
+    val appInfoShownFor: List<LauncherAppId> = mutableAppInfoShownFor
+    val uninstallsRequestedFor: List<LauncherAppId> = mutableUninstallsRequestedFor
 
     fun install(app: LauncherApp) {
         mutableInstalledApps.value = (mutableInstalledApps.value + app).alphabetized()
@@ -34,6 +38,14 @@ class FakeLauncherRepository : LauncherRepository {
         mutableLaunchedApps += app
     }
 
+    override fun showAppInfo(appId: LauncherAppId) {
+        mutableAppInfoShownFor += appId
+    }
+
+    override fun requestUninstall(appId: LauncherAppId) {
+        mutableUninstallsRequestedFor += appId
+    }
+
     override suspend fun chooseFavorite(favorite: Favorite) {
         mutableFavorites.value =
             (mutableFavorites.value.filterNot { it.appId == favorite.appId } + favorite)
@@ -42,6 +54,10 @@ class FakeLauncherRepository : LauncherRepository {
 
     override suspend fun dismissFavorite(appId: LauncherAppId) {
         mutableFavorites.value = mutableFavorites.value.filterNot { it.appId == appId }
+    }
+
+    override suspend fun reorderFavorites(order: List<LauncherAppId>) {
+        mutableFavorites.value = mutableFavorites.value.orderedBy(order)
     }
 
     override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) {

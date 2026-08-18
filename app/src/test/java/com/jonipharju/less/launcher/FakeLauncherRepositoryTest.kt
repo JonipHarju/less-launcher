@@ -2,6 +2,7 @@ package com.jonipharju.less.launcher
 
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FakeLauncherRepositoryTest {
@@ -37,6 +38,76 @@ class FakeLauncherRepositoryTest {
                 repository.favorites.value,
             )
         }
+
+    @Test
+    fun `reordering Favorites rewrites their positions and keeps their labels`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            val calendar = launcherAppFixture(label = "Calendar")
+            repository.chooseFavorite(Favorite(clock.id, position = 0, customLabel = "Time"))
+            repository.chooseFavorite(Favorite(calendar.id, position = 1))
+
+            repository.reorderFavorites(listOf(calendar.id, clock.id))
+
+            assertEquals(
+                listOf(
+                    Favorite(calendar.id, position = 0),
+                    Favorite(clock.id, position = 1, customLabel = "Time"),
+                ),
+                repository.favorites.value,
+            )
+        }
+
+    @Test
+    fun `renaming a Favorite leaves its position alone`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.chooseFavorite(Favorite(clock.id, position = 3))
+
+            val renamed =
+                repository.favorites.value
+                    .single()
+                    .copy(customLabel = "Time")
+            repository.chooseFavorite(renamed)
+
+            assertEquals(listOf(Favorite(clock.id, position = 3, customLabel = "Time")), repository.favorites.value)
+        }
+
+    @Test
+    fun `pinning past the soft cap still adds the Favorite`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            repeat(FavoritesSoftCap) { index ->
+                val app = launcherAppFixture(label = "App$index")
+                repository.chooseFavorite(repository.favorites.value.pinning(app.id))
+            }
+            val ninth = launcherAppFixture(label = "Ninth")
+
+            repository.chooseFavorite(repository.favorites.value.pinning(ninth.id))
+
+            assertEquals(FavoritesSoftCap + 1, repository.favorites.value.size)
+            assertTrue(repository.favorites.value.exceedSoftCap())
+            assertEquals(
+                ninth.id,
+                repository.favorites.value
+                    .last()
+                    .appId,
+            )
+        }
+
+    @Test
+    fun `app info and uninstall are asked of the system`() {
+        val repository = FakeLauncherRepository()
+        val clock = launcherAppFixture(label = "Clock")
+
+        repository.showAppInfo(clock.id)
+        repository.requestUninstall(clock.id)
+
+        assertEquals(listOf(clock.id), repository.appInfoShownFor)
+        assertEquals(listOf(clock.id), repository.uninstallsRequestedFor)
+    }
 
     @Test
     fun `installed app appears in observable state`() {

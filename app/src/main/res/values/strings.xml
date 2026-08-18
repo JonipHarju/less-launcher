@@ -16,4 +16,19 @@
     <string name="settings_open_keyboard_with_drawer">Open keyboard with Drawer</string>
     <string name="settings_on">On</string>
     <string name="settings_off">Off</string>
+    <string name="settings_favorites">Favorites</string>
+    <string name="settings_favorites_empty">None yet. Long-press an app in the Drawer to pin one.</string>
+    <string name="favorite_pin">Pin to Home</string>
+    <string name="favorite_unpin">Unpin from Home</string>
+    <string name="favorite_rename">Rename</string>
+    <string name="app_info">App info</string>
+    <string name="app_uninstall">Uninstall</string>
+    <string name="notice_dismiss">Got it</string>
+    <string name="rename_title">Name %1$s on Home</string>
+    <string name="rename_name">Name for %1$s</string>
+    <string name="rename_save">Save</string>
+    <string name="favorites_soft_cap">More than %1$d Favorites. Home takes them and starts to scroll.</string>
+    <string name="favorites_move_up">Move %1$s up</string>
+    <string name="favorites_move_down">Move %1$s down</string>
+    <string name="favorites_unpin">Unpin %1$s</string>
 </resources>

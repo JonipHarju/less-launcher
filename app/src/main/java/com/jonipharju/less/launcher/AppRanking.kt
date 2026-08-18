@@ -2,13 +2,20 @@ package com.jonipharju.less.launcher
 
 import java.text.Normalizer
 
-/** Returns apps matching [query], ordered from strongest match to weakest. */
-internal fun Iterable<LauncherApp>.rankedFor(query: String): List<LauncherApp> {
+/**
+ * Returns apps matching [query], ordered from strongest match to weakest. An app the user has
+ * renamed as a Favorite is matched under [customLabels] as well as under its real name, so
+ * that their own vocabulary finds it.
+ */
+internal fun Iterable<LauncherApp>.rankedFor(
+    query: String,
+    customLabels: Map<LauncherAppId, String> = emptyMap(),
+): List<LauncherApp> {
     val normalizedQuery = query.normalizedForSearch().trim()
     if (normalizedQuery.isEmpty()) return alphabetized()
 
     return mapNotNull { app ->
-        app.matchClass(normalizedQuery)?.let { matchClass -> RankedApp(app, matchClass) }
+        app.matchClass(normalizedQuery, customLabels[app.id])?.let { matchClass -> RankedApp(app, matchClass) }
     }.sortedWith(
         compareBy<RankedApp> { it.matchClass }
             .thenBy { it.app.label.normalizedForSearch() }
@@ -32,15 +39,21 @@ private enum class MatchClass {
     Initials,
 }
 
-private fun LauncherApp.matchClass(query: String): MatchClass? {
-    val searchableLabel = label.normalizedForSearch()
-    val words = searchableLabel.split(WORD_SEPARATOR).filter(String::isNotEmpty)
+/** The strongest class any of the app's names matches under, or null where none of them do. */
+private fun LauncherApp.matchClass(
+    query: String,
+    customLabel: String?,
+): MatchClass? = listOfNotNull(label, customLabel).mapNotNull { name -> name.matchClass(query) }.minOrNull()
+
+private fun String.matchClass(query: String): MatchClass? {
+    val searchableName = normalizedForSearch()
+    val words = searchableName.split(WORD_SEPARATOR).filter(String::isNotEmpty)
 
     return when {
-        searchableLabel == query -> MatchClass.Exact
-        searchableLabel.startsWith(query) -> MatchClass.NameStart
+        searchableName == query -> MatchClass.Exact
+        searchableName.startsWith(query) -> MatchClass.NameStart
         words.any { it.startsWith(query) } -> MatchClass.WordStart
-        searchableLabel.contains(query) -> MatchClass.Substring
+        searchableName.contains(query) -> MatchClass.Substring
         words.size > 1 && words.joinToString(separator = "") { it.take(1) }.startsWith(query) ->
             MatchClass.Initials
         else -> null

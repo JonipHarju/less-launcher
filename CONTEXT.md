@@ -36,6 +36,11 @@ Whether Home lays its clock, date, and Favorites out from the left edge or
 centred across the width. The user's choice, and the only thing that moves them.
 _Avoid_: gravity, text alignment, layout mode
 
+**Soft Cap**:
+The eight Favorites past which Home stops being a short list. It advises and
+never blocks: the ninth Favorite is pinned, the user is told, and Home scrolls.
+_Avoid_: limit, maximum, quota
+
 ### Apps
 
 **Favorite**:

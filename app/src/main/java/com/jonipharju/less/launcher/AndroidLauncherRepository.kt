@@ -273,6 +273,7 @@ private fun StoredLauncherSettings.toLauncherSettings(): LauncherSettings {
         homeAlignment = homeAlignment.toHomeAlignment() ?: defaults.homeAlignment,
         opensKeyboardWithDrawer =
             if (hasOpensKeyboardWithDrawer()) opensKeyboardWithDrawer else defaults.opensKeyboardWithDrawer,
+        themeId = themeId.takeIf { it.isNotEmpty() } ?: defaults.themeId,
     )
 }
 
@@ -284,6 +285,7 @@ private fun LauncherSettings.mergedInto(stored: StoredLauncherSettings): StoredL
         .setDrawerOpenDirection(drawerOpenDirection.toProto())
         .setHomeAlignment(homeAlignment.toProto())
         .setOpensKeyboardWithDrawer(opensKeyboardWithDrawer)
+        .setThemeId(themeId)
         .also { builder -> iconModeOverride?.let { builder.iconModeOverride = it.toProto() } }
         .build()
 

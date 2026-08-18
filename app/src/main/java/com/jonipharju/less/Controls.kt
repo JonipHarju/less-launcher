@@ -10,7 +10,6 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -31,7 +30,11 @@ internal fun GlyphControl(
                 .clickable(onClick = onClick)
                 .padding(horizontal = 12.dp, vertical = 4.dp)
                 .semantics { contentDescription = description },
-        style = TextStyle(color = Color.LightGray, fontSize = 22.sp),
+        style =
+            TextStyle(
+                color = LocalTheme.current.secondaryTextColor,
+                fontSize = 22.sp,
+            ),
     )
 }
 

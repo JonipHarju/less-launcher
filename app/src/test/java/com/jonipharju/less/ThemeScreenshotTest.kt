@@ -21,33 +21,71 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [35], qualifiers = "w360dp-h800dp-xxhdpi")
 class ThemeScreenshotTest {
     @Test
-    fun homeUnderNearBlackTheme() {
-        val repository = repositoryWithApps()
-
-        captureRoboImage {
-            val wallpaper = ImageBitmap.imageResource(R.drawable.near_black_wallpaper)
-            ThemedSurface(SurfaceWallpaper.Fixed(wallpaper), modifier = Modifier.requiredSize(360.dp, 800.dp)) {
-                Home(
-                    repository = repository,
-                    timeText = "14:35",
-                    dateText = "Tuesday, August 18, 2026",
-                    onOpenClock = {},
-                    onOpenCalendar = {},
-                    onOpenDrawer = {},
-                )
-            }
-        }
-    }
+    fun homeUnderNearBlackTheme() = captureHome(NearBlackTheme)
 
     @Test
-    fun drawerUnderNearBlackTheme() {
-        val repository = repositoryWithApps()
+    fun drawerUnderNearBlackTheme() = captureDrawer(NearBlackTheme)
 
-        captureRoboImage {
-            val wallpaper = ImageBitmap.imageResource(R.drawable.near_black_wallpaper)
-            ThemedSurface(SurfaceWallpaper.Fixed(wallpaper), modifier = Modifier.requiredSize(360.dp, 800.dp)) {
-                Drawer(repository = repository, onClose = {}, onOpenSettings = {})
-            }
+    @Test
+    fun homeUnderOffWhiteTheme() = captureHome(OffWhiteTheme)
+
+    @Test
+    fun drawerUnderOffWhiteTheme() = captureDrawer(OffWhiteTheme)
+
+    @Test
+    fun homeUnderParasolTheme() = captureHome(ParasolTheme)
+
+    @Test
+    fun drawerUnderParasolTheme() = captureDrawer(ParasolTheme)
+
+    @Test
+    fun homeUnderCoubronTheme() = captureHome(CoubronTheme)
+
+    @Test
+    fun drawerUnderCoubronTheme() = captureDrawer(CoubronTheme)
+
+    @Test
+    fun homeUnderRuinedChurchTheme() = captureHome(RuinedChurchTheme)
+
+    @Test
+    fun drawerUnderRuinedChurchTheme() = captureDrawer(RuinedChurchTheme)
+
+    @Test
+    fun homeUnderSpringhouseTheme() = captureHome(SpringhouseTheme)
+
+    @Test
+    fun drawerUnderSpringhouseTheme() = captureDrawer(SpringhouseTheme)
+}
+
+private fun captureHome(theme: Theme) {
+    val repository = repositoryWithApps()
+    captureRoboImage {
+        ThemedSurface(
+            wallpaper = SurfaceWallpaper.Fixed(ImageBitmap.imageResource(theme.wallpaperAsset)),
+            modifier = Modifier.requiredSize(360.dp, 800.dp),
+            theme = theme,
+        ) {
+            Home(
+                repository = repository,
+                timeText = "14:35",
+                dateText = "Tuesday, August 18, 2026",
+                onOpenClock = {},
+                onOpenCalendar = {},
+                onOpenDrawer = {},
+            )
+        }
+    }
+}
+
+private fun captureDrawer(theme: Theme) {
+    val repository = repositoryWithApps()
+    captureRoboImage {
+        ThemedSurface(
+            wallpaper = SurfaceWallpaper.Fixed(ImageBitmap.imageResource(theme.wallpaperAsset)),
+            modifier = Modifier.requiredSize(360.dp, 800.dp),
+            theme = theme,
+        ) {
+            Drawer(repository = repository, onClose = {}, onOpenSettings = {})
         }
     }
 }

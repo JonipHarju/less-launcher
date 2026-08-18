@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
@@ -57,6 +58,8 @@ internal enum class DrawerTreatment {
 
 /** Authored appearance data. A Theme cannot change layout or launcher behaviour. */
 internal data class Theme(
+    val id: String,
+    val name: String,
     @DrawableRes val wallpaperAsset: Int,
     val credit: Credit,
     val scrim: Scrim,
@@ -69,33 +72,18 @@ internal data class Theme(
     val drawerTreatment: DrawerTreatment,
 )
 
-internal val NearBlackTheme =
-    Theme(
-        wallpaperAsset = R.drawable.near_black_wallpaper,
-        credit =
-            Credit(
-                artist = "Less",
-                title = "Near Black",
-                year = "2026",
-                collection = "Generated Themes",
-                source = "Generated for Less",
-            ),
-        // Every stop is at least 90% opaque black. Even a white Wallpaper therefore
-        // reaches at most 10% luminance, leaving both text colours above WCAG AA contrast.
-        scrim = Scrim(top = Color.Black.copy(alpha = 0.94f), bottom = Color.Black.copy(alpha = 0.90f)),
-        fontFamily = FontFamily.SansSerif,
-        typeScale =
-            ThemeTypeScale(
-                clock = ThemeTextStyle(48.sp, FontWeight.Light),
-                date = ThemeTextStyle(18.sp, FontWeight.Normal),
-                app = ThemeTextStyle(24.sp, FontWeight.Normal),
-                search = ThemeTextStyle(18.sp, FontWeight.Normal),
-            ),
-        textColor = Color.White,
-        secondaryTextColor = Color(0xFFE8E8E8),
-        accentColor = Color(0xFFFFFFFF),
-        iconMode = IconMode.Hidden,
-        drawerTreatment = DrawerTreatment.FlatTranslucent,
+internal val Manrope = FontFamily(Font(R.font.manrope, FontWeight.Normal))
+internal val Fraunces = FontFamily(Font(R.font.fraunces, FontWeight.Normal))
+internal val EbGaramond = FontFamily(Font(R.font.eb_garamond, FontWeight.Normal))
+internal val CormorantGaramond = FontFamily(Font(R.font.cormorant_garamond, FontWeight.Normal))
+internal val Newsreader = FontFamily(Font(R.font.newsreader, FontWeight.Normal))
+
+internal val SharedTypeScale =
+    ThemeTypeScale(
+        clock = ThemeTextStyle(48.sp, FontWeight.Light),
+        date = ThemeTextStyle(18.sp, FontWeight.Normal),
+        app = ThemeTextStyle(24.sp, FontWeight.Normal),
+        search = ThemeTextStyle(18.sp, FontWeight.Normal),
     )
 
 internal val LocalTheme = staticCompositionLocalOf { NearBlackTheme }

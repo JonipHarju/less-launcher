@@ -24,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -33,7 +32,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.LauncherRepository
@@ -63,6 +61,7 @@ internal fun Drawer(
     val searchFocusRequester = remember { FocusRequester() }
     val opensKeyboard = settings.opensKeyboardWithDrawer
     val drawerOpenDirection = settings.drawerOpenDirection
+    val theme = LocalTheme.current
 
     var curated by remember { mutableStateOf<LauncherApp?>(null) }
     var crowdedHome by remember { mutableStateOf(false) }
@@ -109,8 +108,10 @@ internal fun Drawer(
                             ).padding(horizontal = 24.dp, vertical = 16.dp),
                     style =
                         TextStyle(
-                            color = Color.White,
-                            fontSize = 24.sp,
+                            color = theme.textColor,
+                            fontFamily = theme.fontFamily,
+                            fontSize = theme.typeScale.app.size,
+                            fontWeight = theme.typeScale.app.weight,
                         ),
                 )
             }
@@ -174,6 +175,7 @@ private fun SearchField(
     focusRequester: FocusRequester,
 ) {
     val searchDescription = stringResource(R.string.search_apps)
+    val theme = LocalTheme.current
     BasicTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -183,8 +185,14 @@ private fun SearchField(
                 .padding(horizontal = 24.dp, vertical = 16.dp)
                 .focusRequester(focusRequester)
                 .semantics { contentDescription = searchDescription },
-        textStyle = TextStyle(color = Color.LightGray, fontSize = 18.sp),
-        cursorBrush = SolidColor(Color.LightGray),
+        textStyle =
+            TextStyle(
+                color = theme.secondaryTextColor,
+                fontFamily = theme.fontFamily,
+                fontSize = theme.typeScale.search.size,
+                fontWeight = theme.typeScale.search.weight,
+            ),
+        cursorBrush = SolidColor(theme.accentColor),
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { onSearch() }),
@@ -193,7 +201,13 @@ private fun SearchField(
                 if (query.isEmpty()) {
                     BasicText(
                         text = searchDescription,
-                        style = TextStyle(color = Color.Gray, fontSize = 18.sp),
+                        style =
+                            TextStyle(
+                                color = theme.secondaryTextColor.copy(alpha = 0.7f),
+                                fontFamily = theme.fontFamily,
+                                fontSize = theme.typeScale.search.size,
+                                fontWeight = theme.typeScale.search.weight,
+                            ),
                     )
                 }
                 innerTextField()

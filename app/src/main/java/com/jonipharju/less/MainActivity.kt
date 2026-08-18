@@ -99,27 +99,29 @@ internal fun LessLauncher(
         surface = if (surface == LauncherSurface.Settings) LauncherSurface.Drawer else LauncherSurface.Home
     }
 
-    when (surface) {
-        LauncherSurface.Home ->
-            Home(
-                repository = repository,
-                timeText = formattedTime(context, now),
-                dateText = formattedDate(now),
-                onOpenClock = onOpenClock,
-                onOpenCalendar = { onOpenCalendar(now) },
-                onOpenDrawer = { surface = LauncherSurface.Drawer },
-            )
-        LauncherSurface.Drawer ->
-            Drawer(
-                repository = repository,
-                onClose = { surface = LauncherSurface.Home },
-                onOpenSettings = { surface = LauncherSurface.Settings },
-            )
-        LauncherSurface.Settings ->
-            Settings(
-                repository = repository,
-                onClose = { surface = LauncherSurface.Drawer },
-            )
+    ThemedSurface(wallpaper = SurfaceWallpaper.System) {
+        when (surface) {
+            LauncherSurface.Home ->
+                Home(
+                    repository = repository,
+                    timeText = formattedTime(context, now),
+                    dateText = formattedDate(now),
+                    onOpenClock = onOpenClock,
+                    onOpenCalendar = { onOpenCalendar(now) },
+                    onOpenDrawer = { surface = LauncherSurface.Drawer },
+                )
+            LauncherSurface.Drawer ->
+                Drawer(
+                    repository = repository,
+                    onClose = { surface = LauncherSurface.Home },
+                    onOpenSettings = { surface = LauncherSurface.Settings },
+                )
+            LauncherSurface.Settings ->
+                Settings(
+                    repository = repository,
+                    onClose = { surface = LauncherSurface.Drawer },
+                )
+        }
     }
 }
 

@@ -1,13 +1,18 @@
 package com.jonipharju.less
 
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.jonipharju.less.launcher.FakeLauncherRepository
 import com.jonipharju.less.launcher.Favorite
+import com.jonipharju.less.launcher.HomeAlignment
+import com.jonipharju.less.launcher.LauncherSettings
 import com.jonipharju.less.launcher.launcherAppFixture
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -16,7 +21,7 @@ class HomeTest {
     val compose = createComposeRule()
 
     @Test
-    fun rendersClockDateAndFavoritesInPositionOrder() =
+    fun rendersClockDateAndFavoritesInPositionOrder() {
         runBlocking {
             val repository = FakeLauncherRepository()
             val clock = launcherAppFixture("Clock")
@@ -42,9 +47,10 @@ class HomeTest {
             compose.onNodeWithText("Calendar").assertExists()
             compose.onNodeWithText("Time").assertExists()
         }
+    }
 
     @Test
-    fun tapsOpenSystemAppsAndLaunchFavorite() =
+    fun tapsOpenSystemAppsAndLaunchFavorite() {
         runBlocking {
             val repository = FakeLauncherRepository()
             val clock = launcherAppFixture("Clock")
@@ -71,4 +77,48 @@ class HomeTest {
             assertEquals(1, calendarOpens)
             assertEquals(listOf(clock), repository.launchedApps)
         }
+    }
+
+    @Test
+    fun showsNeitherTheAppListNorTheSearchField() {
+        val repository = FakeLauncherRepository()
+        repository.install(launcherAppFixture("Camera"))
+
+        compose.setContent {
+            Home(
+                repository = repository,
+                timeText = "14:35",
+                dateText = "Tuesday, August 18, 2026",
+                onOpenClock = {},
+                onOpenCalendar = {},
+                onOpenDrawer = {},
+            )
+        }
+
+        compose.onNodeWithText("Camera").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Search apps").assertDoesNotExist()
+    }
+
+    @Test
+    fun centringTakesEffectWithoutLeavingHome() {
+        val repository = FakeLauncherRepository()
+        compose.setContent {
+            Home(
+                repository = repository,
+                timeText = "14:35",
+                dateText = "Tuesday, August 18, 2026",
+                onOpenClock = {},
+                onOpenCalendar = {},
+                onOpenDrawer = {},
+            )
+        }
+        val whenLeftAligned = compose.onNodeWithText("14:35").getUnclippedBoundsInRoot().left
+
+        compose.runOnIdle {
+            runBlocking { repository.updateSettings(LauncherSettings(homeAlignment = HomeAlignment.Centred)) }
+        }
+
+        val whenCentred = compose.onNodeWithText("14:35").getUnclippedBoundsInRoot().left
+        assertTrue("Expected $whenCentred to sit right of $whenLeftAligned", whenCentred > whenLeftAligned)
+    }
 }

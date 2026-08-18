@@ -19,7 +19,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import com.jonipharju.less.launcher.proto.DrawerOpenDirection as StoredDrawerOpenDirection
+import com.jonipharju.less.launcher.proto.HomeAlignment as StoredHomeAlignment
 import com.jonipharju.less.launcher.proto.IconMode as StoredIconMode
+import com.jonipharju.less.launcher.proto.LauncherSettings as StoredLauncherSettings
 
 /** [LauncherRepository] backed by Android's profile-aware launcher APIs. */
 class AndroidLauncherRepository(
@@ -41,16 +44,8 @@ class AndroidLauncherRepository(
             .stateIn(scope, SharingStarted.Eagerly, emptyList())
     override val settings =
         userDataStore.data
-            .map { userData ->
-                LauncherSettings(
-                    iconModeOverride =
-                        if (userData.settings.hasIconModeOverride()) {
-                            userData.settings.iconModeOverride.toIconMode()
-                        } else {
-                            null
-                        },
-                )
-            }.stateIn(scope, SharingStarted.Eagerly, LauncherSettings())
+            .map { userData -> userData.settings.toLauncherSettings() }
+            .stateIn(scope, SharingStarted.Eagerly, LauncherSettings())
 
     private val launcherCallback =
         object : LauncherApps.Callback() {
@@ -134,9 +129,7 @@ class AndroidLauncherRepository(
 
     override suspend fun updateSettings(settings: LauncherSettings) {
         userDataStore.updateData { userData ->
-            val storedSettings = userData.settings.toBuilder().clearIconModeOverride()
-            settings.iconModeOverride?.let { storedSettings.iconModeOverride = it.toProto() }
-            userData.toBuilder().setSettings(storedSettings).build()
+            userData.toBuilder().setSettings(settings.toProto()).build()
         }
     }
 
@@ -199,6 +192,57 @@ private fun StoredFavorite.hasSameAppIdAs(appId: LauncherAppId) =
     packageName == appId.packageName &&
         activityName == appId.activityName &&
         profileSerialNumber == appId.profileSerialNumber
+
+/** Every unset field falls back to the default the domain type declares, not to a repeated literal. */
+private fun StoredLauncherSettings.toLauncherSettings(): LauncherSettings {
+    val defaults = LauncherSettings()
+    return LauncherSettings(
+        iconModeOverride = if (hasIconModeOverride()) iconModeOverride.toIconMode() else defaults.iconModeOverride,
+        drawerOpenDirection = drawerOpenDirection.toDrawerOpenDirection() ?: defaults.drawerOpenDirection,
+        homeAlignment = homeAlignment.toHomeAlignment() ?: defaults.homeAlignment,
+        opensKeyboardWithDrawer =
+            if (hasOpensKeyboardWithDrawer()) opensKeyboardWithDrawer else defaults.opensKeyboardWithDrawer,
+    )
+}
+
+private fun LauncherSettings.toProto(): StoredLauncherSettings =
+    StoredLauncherSettings
+        .newBuilder()
+        .setDrawerOpenDirection(drawerOpenDirection.toProto())
+        .setHomeAlignment(homeAlignment.toProto())
+        .setOpensKeyboardWithDrawer(opensKeyboardWithDrawer)
+        .also { builder -> iconModeOverride?.let { builder.iconModeOverride = it.toProto() } }
+        .build()
+
+private fun DrawerOpenDirection.toProto() =
+    when (this) {
+        DrawerOpenDirection.SwipeUp -> StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_SWIPE_UP
+        DrawerOpenDirection.SwipeDown -> StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_SWIPE_DOWN
+    }
+
+private fun StoredDrawerOpenDirection.toDrawerOpenDirection(): DrawerOpenDirection? =
+    when (this) {
+        StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_SWIPE_UP -> DrawerOpenDirection.SwipeUp
+        StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_SWIPE_DOWN -> DrawerOpenDirection.SwipeDown
+        StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_UNSPECIFIED,
+        StoredDrawerOpenDirection.UNRECOGNIZED,
+        -> null
+    }
+
+private fun HomeAlignment.toProto() =
+    when (this) {
+        HomeAlignment.Left -> StoredHomeAlignment.HOME_ALIGNMENT_LEFT
+        HomeAlignment.Centred -> StoredHomeAlignment.HOME_ALIGNMENT_CENTRED
+    }
+
+private fun StoredHomeAlignment.toHomeAlignment(): HomeAlignment? =
+    when (this) {
+        StoredHomeAlignment.HOME_ALIGNMENT_LEFT -> HomeAlignment.Left
+        StoredHomeAlignment.HOME_ALIGNMENT_CENTRED -> HomeAlignment.Centred
+        StoredHomeAlignment.HOME_ALIGNMENT_UNSPECIFIED,
+        StoredHomeAlignment.UNRECOGNIZED,
+        -> null
+    }
 
 private fun IconMode.toProto() =
     when (this) {

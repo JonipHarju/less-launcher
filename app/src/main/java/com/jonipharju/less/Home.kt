@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,7 +30,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jonipharju.less.launcher.Favorite
 import com.jonipharju.less.launcher.HomeAlignment
 import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.LauncherRepository
@@ -37,6 +37,7 @@ import com.jonipharju.less.launcher.ShownFavorite
 import com.jonipharju.less.launcher.VerticalSwipe
 import com.jonipharju.less.launcher.moved
 import com.jonipharju.less.launcher.opensDrawer
+import com.jonipharju.less.launcher.renamedTo
 import com.jonipharju.less.launcher.shownAmong
 import kotlinx.coroutines.launch
 
@@ -100,25 +101,29 @@ internal fun Home(
                 style = TextStyle(color = Color.LightGray, fontSize = 18.sp),
             )
             shown.forEach { shownFavorite ->
-                FavoriteRow(
-                    shownFavorite = shownFavorite,
-                    textAlign = textAlign,
-                    onLaunch = { repository.launch(shownFavorite.app) },
-                    onCurate = { curated = shownFavorite.favorite.appId },
-                    onDragBy = { rows ->
-                        val order = draggedOrder ?: shown.map { it.favorite.appId }
-                        val from = order.indexOf(shownFavorite.favorite.appId)
-                        draggedOrder = order.moved(from, (from + rows).coerceIn(order.indices))
-                    },
-                    onDragEnd = {
-                        val order = draggedOrder
-                        if (order == null) return@FavoriteRow
-                        scope.launch {
-                            repository.reorderFavorites(order)
-                            draggedOrder = null
-                        }
-                    },
-                )
+                // Keyed by the app rather than by the row it currently occupies, so that a row
+                // being dragged keeps its identity — and with it the live touch — as it moves.
+                key(shownFavorite.favorite.appId) {
+                    FavoriteRow(
+                        shownFavorite = shownFavorite,
+                        textAlign = textAlign,
+                        onLaunch = { repository.launch(shownFavorite.app) },
+                        onCurate = { curated = shownFavorite.favorite.appId },
+                        onDragBy = { rows ->
+                            val order = draggedOrder ?: shown.map { it.favorite.appId }
+                            val from = order.indexOf(shownFavorite.favorite.appId)
+                            draggedOrder = order.moved(from, (from + rows).coerceIn(order.indices))
+                        },
+                        onDragEnd = {
+                            draggedOrder?.let { order ->
+                                scope.launch {
+                                    repository.reorderFavorites(order)
+                                    draggedOrder = null
+                                }
+                            }
+                        },
+                    )
+                }
             }
         }
     }
@@ -231,9 +236,6 @@ private fun List<ShownFavorite>.inTheOrderOf(order: List<LauncherAppId>): List<S
     sortedBy { shownFavorite ->
         order.indexOf(shownFavorite.favorite.appId).takeUnless { it == -1 } ?: order.size
     }
-
-/** The Favorite under a new name, where a name emptied out hands back the app's own. */
-private fun Favorite.renamedTo(name: String): Favorite = copy(customLabel = name.trim().ifEmpty { null })
 
 private fun HomeAlignment.asHorizontalAlignment() =
     when (this) {

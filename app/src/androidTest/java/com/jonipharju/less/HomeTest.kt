@@ -200,6 +200,31 @@ class HomeTest {
     }
 
     @Test
+    fun aDragCarriesOnPastTheFirstRowItMoves() {
+        val repository = homeWith("Clock", "Camera", "Maps")
+
+        // Two separate moves, so the second is delivered after the first has already
+        // rearranged Home. A row that lost its touch when it moved would stop after one.
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+            moveBy(Offset(0f, FavoriteRowHeight.toPx() * 1.2f))
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText("Clock").performTouchInput {
+            moveBy(Offset(0f, FavoriteRowHeight.toPx() * 1.2f))
+            up()
+        }
+
+        compose.runOnIdle {
+            assertEquals(
+                listOf("Camera", "Maps", "Clock"),
+                repository.favorites.value.labelsAmong(repository.installedApps.value),
+            )
+        }
+    }
+
+    @Test
     fun aLongPressThatBarelyMovesStillOpensTheMenu() {
         homeWith("Clock", "Camera")
 

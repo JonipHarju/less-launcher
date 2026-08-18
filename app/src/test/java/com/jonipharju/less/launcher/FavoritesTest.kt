@@ -92,6 +92,22 @@ class FavoritesTest {
     }
 
     @Test
+    fun `renaming trims the name and an emptied name hands back the app's own`() {
+        val favorite = Favorite(launcherAppFixture("Clock").id, position = 0)
+
+        assertEquals("Time", favorite.renamedTo("  Time  ").customLabel)
+        assertEquals(null, favorite.renamedTo("   ").customLabel)
+        assertEquals(null, favorite.renamedTo("Time").renamedTo("").customLabel)
+    }
+
+    @Test
+    fun `renaming leaves the Favorite's position alone`() {
+        val favorite = Favorite(launcherAppFixture("Clock").id, position = 3)
+
+        assertEquals(3, favorite.renamedTo("Time").position)
+    }
+
+    @Test
     fun `the soft cap is exceeded only by the ninth Favorite`() {
         val eight = favorites(count = 8)
 

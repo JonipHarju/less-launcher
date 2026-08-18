@@ -35,6 +35,12 @@ internal fun <T> List<T>.moved(
     return toMutableList().apply { add(to, removeAt(from)) }
 }
 
+/**
+ * The Favorite under the name [name]. A name the user emptied out is not a name: it hands the
+ * Favorite back the app's own, rather than leaving Home with a blank row.
+ */
+internal fun Favorite.renamedTo(name: String): Favorite = copy(customLabel = name.trim().ifEmpty { null })
+
 /** Positions rewritten as zero upwards in list order, so that no two Favorites share one. */
 private fun List<Favorite>.renumbered(): List<Favorite> = mapIndexed { index, favorite -> favorite.copy(position = index) }
 

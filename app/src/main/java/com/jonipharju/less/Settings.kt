@@ -35,6 +35,7 @@ import com.jonipharju.less.launcher.LauncherSettings
 import com.jonipharju.less.launcher.ShownFavorite
 import com.jonipharju.less.launcher.exceedSoftCap
 import com.jonipharju.less.launcher.moved
+import com.jonipharju.less.launcher.renamedTo
 import com.jonipharju.less.launcher.shownAmong
 import kotlinx.coroutines.launch
 
@@ -142,11 +143,7 @@ private fun FavoritesEditor(repository: LauncherRepository) {
             onDismiss = { renaming = null },
             onRename = { name ->
                 renaming = null
-                scope.launch {
-                    repository.chooseFavorite(
-                        shownFavorite.favorite.copy(customLabel = name.trim().ifEmpty { null }),
-                    )
-                }
+                scope.launch { repository.chooseFavorite(shownFavorite.favorite.renamedTo(name)) }
             },
         )
     }

@@ -22,14 +22,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.jonipharju.less.launcher.HomeAlignment
 import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.LauncherRepository
@@ -59,6 +57,7 @@ internal fun Home(
     val installedApps by repository.installedApps.collectAsState()
     val scope = rememberCoroutineScope()
     val drawerOpenDirection = settings.drawerOpenDirection
+    val theme = LocalTheme.current
 
     var curated by remember { mutableStateOf<LauncherAppId?>(null) }
     var renaming by remember { mutableStateOf<LauncherAppId?>(null) }
@@ -93,12 +92,24 @@ internal fun Home(
             BasicText(
                 text = timeText,
                 modifier = Modifier.clickable(onClick = onOpenClock),
-                style = TextStyle(color = Color.White, fontSize = 48.sp),
+                style =
+                    TextStyle(
+                        color = theme.textColor,
+                        fontFamily = theme.fontFamily,
+                        fontSize = theme.typeScale.clock.size,
+                        fontWeight = theme.typeScale.clock.weight,
+                    ),
             )
             BasicText(
                 text = dateText,
                 modifier = Modifier.clickable(onClick = onOpenCalendar),
-                style = TextStyle(color = Color.LightGray, fontSize = 18.sp),
+                style =
+                    TextStyle(
+                        color = theme.secondaryTextColor,
+                        fontFamily = theme.fontFamily,
+                        fontSize = theme.typeScale.date.size,
+                        fontWeight = theme.typeScale.date.weight,
+                    ),
             )
             shown.forEach { shownFavorite ->
                 // Keyed by the app rather than by the row it currently occupies, so that a row
@@ -204,7 +215,11 @@ private fun TombstoneRow(
                     onDrag = {},
                     onDragEnd = {},
                 ),
-        style = TextStyle(color = Color.Gray, fontSize = 24.sp, textAlign = textAlign),
+        style =
+            themedAppTextStyle(
+                color = LocalTheme.current.secondaryTextColor,
+                textAlign = textAlign,
+            ),
     )
 }
 
@@ -250,7 +265,7 @@ private fun FavoriteRow(
                         onDragEnd()
                     },
                 ),
-        style = TextStyle(color = Color.White, fontSize = 24.sp, textAlign = textAlign),
+        style = themedAppTextStyle(color = LocalTheme.current.textColor, textAlign = textAlign),
     )
 }
 
@@ -304,3 +319,18 @@ private fun HomeAlignment.asTextAlign() =
         HomeAlignment.Left -> TextAlign.Start
         HomeAlignment.Centred -> TextAlign.Center
     }
+
+@Composable
+private fun themedAppTextStyle(
+    color: androidx.compose.ui.graphics.Color,
+    textAlign: TextAlign,
+): TextStyle {
+    val theme = LocalTheme.current
+    return TextStyle(
+        color = color,
+        fontFamily = theme.fontFamily,
+        fontSize = theme.typeScale.app.size,
+        fontWeight = theme.typeScale.app.weight,
+        textAlign = textAlign,
+    )
+}

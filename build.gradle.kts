@@ -3,4 +3,5 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.protobuf) apply false
+    alias(libs.plugins.roborazzi) apply false
 }

@@ -132,6 +132,26 @@ class HomeTest {
     }
 
     @Test
+    fun anUnavailableFavoriteIsInertDismissibleAndRestoresInPlace() {
+        val repository = homeWith("Clock", "Camera")
+        val clock = repository.installedApps.value.first { it.label == "Clock" }
+
+        compose.runOnIdle { repository.makeUnavailable(clock.id) }
+        compose.onNodeWithText("Clock").assertExists().performClick()
+        assertEquals(emptyList<LauncherApp>(), repository.launchedApps)
+
+        compose.runOnIdle { repository.makeAvailable(clock) }
+        compose.onNodeWithText("Clock").performClick()
+        assertEquals(listOf(clock), repository.launchedApps)
+
+        compose.runOnIdle { repository.makeUnavailable(clock.id) }
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Dismiss Tombstone").performClick()
+        compose.onNodeWithText("Clock").assertDoesNotExist()
+        compose.onNodeWithText("Camera").assertExists()
+    }
+
+    @Test
     fun appInfoAndUninstallAreAskedOfTheSystem() {
         val repository = homeWith("Clock")
         val clock = repository.installedApps.value.single()

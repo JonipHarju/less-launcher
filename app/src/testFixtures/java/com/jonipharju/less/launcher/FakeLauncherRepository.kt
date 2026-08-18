@@ -24,6 +24,15 @@ class FakeLauncherRepository : LauncherRepository {
 
     fun uninstall(appId: LauncherAppId) {
         mutableInstalledApps.value = mutableInstalledApps.value.filterNot { it.id == appId }
+        mutableFavorites.value = mutableFavorites.value.filterNot { it.appId == appId }
+    }
+
+    fun makeUnavailable(appId: LauncherAppId) {
+        mutableInstalledApps.value = mutableInstalledApps.value.filterNot { it.id == appId }
+    }
+
+    fun makeAvailable(app: LauncherApp) {
+        install(app)
     }
 
     fun update(app: LauncherApp) {

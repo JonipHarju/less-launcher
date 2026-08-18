@@ -138,7 +138,7 @@ private fun FavoritesEditor(repository: LauncherRepository) {
 
     shown.firstOrNull { it.favorite.appId == renaming }?.let { shownFavorite ->
         RenameDialog(
-            appLabel = shownFavorite.app.label,
+            appLabel = shownFavorite.appLabel,
             currentLabel = shownFavorite.label,
             onDismiss = { renaming = null },
             onRename = { name ->

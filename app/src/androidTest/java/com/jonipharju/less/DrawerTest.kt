@@ -365,4 +365,101 @@ class DrawerTest {
 
         compose.onNodeWithText("Clock").assertDoesNotExist()
     }
+
+    @Test
+    fun longPressOffersToHideAnApp() {
+        val repository = FakeLauncherRepository()
+        repository.install(launcherAppFixture(label = "Clock"))
+        compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+
+        compose.onNodeWithText("Hide").assertExists()
+    }
+
+    @Test
+    fun hidingAnAppTakesItOutOfTheDrawer() {
+        val repository = FakeLauncherRepository()
+        val clock = launcherAppFixture(label = "Clock")
+        repository.install(clock)
+        repository.install(launcherAppFixture(label = "Camera"))
+        compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Hide").performClick()
+
+        compose.onNodeWithText("Clock").assertDoesNotExist()
+        compose.onNodeWithText("Camera").assertExists()
+        compose.runOnIdle { assertEquals(setOf(clock.id), repository.hiddenApps.value) }
+    }
+
+    @Test
+    fun aHiddenAppIsNotFoundBySearch() {
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.install(launcherAppFixture(label = "Clock Radio"))
+            repository.hideApp(clock.id)
+            compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+            compose.onNodeWithContentDescription("Search apps").performTextInput("clock")
+
+            compose.onNodeWithText("Clock").assertDoesNotExist()
+            compose.onNodeWithText("Clock Radio").assertExists()
+        }
+    }
+
+    @Test
+    fun enterLaunchesTheTopResultAmongTheAppsStillListed() {
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            val clockRadio = launcherAppFixture(label = "Clock Radio")
+            repository.install(clock)
+            repository.install(clockRadio)
+            repository.hideApp(clock.id)
+            compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+            compose.onNodeWithContentDescription("Search apps").performTextInput("clock")
+            compose.onNodeWithContentDescription("Search apps").performImeAction()
+
+            assertEquals(listOf(clockRadio), repository.launchedApps)
+        }
+    }
+
+    @Test
+    fun unhidingAnAppPutsItBackInTheDrawer() {
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.hideApp(clock.id)
+            compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+            compose.onNodeWithText("Clock").assertDoesNotExist()
+
+            compose.runOnIdle { runBlocking { repository.unhideApp(clock.id) } }
+
+            compose.onNodeWithText("Clock").assertExists()
+        }
+    }
+
+    @Test
+    fun hidingAFavoriteLeavesItOnHome() {
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.chooseFavorite(Favorite(clock.id, position = 0))
+            compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
+
+            compose.onNodeWithText("Clock").performTouchInput { longClick() }
+            compose.onNodeWithText("Hide").performClick()
+
+            compose.runOnIdle {
+                assertEquals(listOf(Favorite(clock.id, position = 0)), repository.favorites.value)
+                assertEquals(setOf(clock.id), repository.hiddenApps.value)
+            }
+        }
+    }
 }

@@ -18,6 +18,8 @@
     <string name="settings_off">Off</string>
     <string name="settings_favorites">Favorites</string>
     <string name="settings_favorites_empty">None yet. Long-press an app in the Drawer to pin one.</string>
+    <string name="settings_hidden_apps">Hidden apps</string>
+    <string name="settings_hidden_apps_empty">None hidden. Long-press an app in the Drawer to hide one.</string>
     <string name="settings_themes">Themes</string>
     <string name="settings_icon_mode">Icon Mode</string>
     <string name="settings_icon_mode_theme">Theme default</string>
@@ -28,6 +30,8 @@
     <string name="favorite_unpin">Unpin from Home</string>
     <string name="favorite_rename">Rename</string>
     <string name="tombstone_dismiss">Dismiss Tombstone</string>
+    <string name="app_hide">Hide</string>
+    <string name="app_unhide">Unhide %1$s</string>
     <string name="app_info">App info</string>
     <string name="app_uninstall">Uninstall</string>
     <string name="notice_dismiss">Got it</string>

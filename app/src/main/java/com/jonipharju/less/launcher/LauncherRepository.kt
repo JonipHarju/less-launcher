@@ -62,6 +62,9 @@ enum class HomeAlignment {
 interface LauncherRepository {
     val installedApps: StateFlow<List<LauncherApp>>
     val favorites: StateFlow<List<Favorite>>
+
+    /** The apps the user has excluded from the Drawer. They stay installed and launchable. */
+    val hiddenApps: StateFlow<Set<LauncherAppId>>
     val settings: StateFlow<LauncherSettings>
 
     fun launch(app: LauncherApp)
@@ -75,6 +78,12 @@ interface LauncherRepository {
     suspend fun chooseFavorite(favorite: Favorite)
 
     suspend fun dismissFavorite(appId: LauncherAppId)
+
+    /** Takes [appId] out of the Drawer. Hiding it again changes nothing. */
+    suspend fun hideApp(appId: LauncherAppId)
+
+    /** Puts [appId] back in the Drawer. Unhiding an app that was never hidden changes nothing. */
+    suspend fun unhideApp(appId: LauncherAppId)
 
     /**
      * Rewrites every Favorite's position to the order [order] names, in one write, so that a

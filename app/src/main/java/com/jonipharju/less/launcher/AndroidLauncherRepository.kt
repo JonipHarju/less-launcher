@@ -17,6 +17,7 @@ import android.os.UserHandle
 import android.os.UserManager
 import androidx.compose.ui.graphics.asImageBitmap
 import com.jonipharju.less.launcher.proto.StoredFavorite
+import com.jonipharju.less.launcher.proto.StoredHiddenApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +51,10 @@ class AndroidLauncherRepository(
         userDataStore.data
             .map { userData -> userData.favoritesList.map(StoredFavorite::toFavorite).sortedBy(Favorite::position) }
             .stateIn(scope, SharingStarted.Eagerly, emptyList())
+    override val hiddenApps =
+        userDataStore.data
+            .map { userData -> userData.hiddenAppsList.map(StoredHiddenApp::toAppId).toSet() }
+            .stateIn(scope, SharingStarted.Eagerly, emptySet())
     override val settings =
         userDataStore.data
             .map { userData -> userData.settings.toLauncherSettings() }
@@ -72,7 +77,7 @@ class AndroidLauncherRepository(
                 user: UserHandle,
             ) {
                 scope.launch {
-                    removeFavoritesForUninstalledPackage(packageName, user)
+                    forgetUninstalledPackage(packageName, user)
                     refresh()
                 }
             }
@@ -166,7 +171,11 @@ class AndroidLauncherRepository(
         }
     }
 
-    private suspend fun removeFavoritesForUninstalledPackage(
+    /**
+     * An uninstalled app leaves nothing behind: no Favorite, because that removal was
+     * intentional, and no record that it was hidden, because there is no longer anything to hide.
+     */
+    private suspend fun forgetUninstalledPackage(
         packageName: String,
         user: UserHandle,
     ) {
@@ -182,7 +191,33 @@ class AndroidLauncherRepository(
                         favorite.packageName == packageName &&
                             favorite.profileSerialNumber == profileSerialNumber
                     },
+                ).clearHiddenApps()
+                .addAllHiddenApps(
+                    userData.hiddenAppsList.filterNot { hiddenApp ->
+                        hiddenApp.packageName == packageName &&
+                            hiddenApp.profileSerialNumber == profileSerialNumber
+                    },
                 ).build()
+        }
+    }
+
+    override suspend fun hideApp(appId: LauncherAppId) {
+        userDataStore.updateData { userData ->
+            if (userData.hiddenAppsList.any { it.toAppId() == appId }) {
+                userData
+            } else {
+                userData.toBuilder().addHiddenApps(appId.toStoredHiddenApp()).build()
+            }
+        }
+    }
+
+    override suspend fun unhideApp(appId: LauncherAppId) {
+        userDataStore.updateData { userData ->
+            userData
+                .toBuilder()
+                .clearHiddenApps()
+                .addAllHiddenApps(userData.hiddenAppsList.filterNot { it.toAppId() == appId })
+                .build()
         }
     }
 
@@ -287,6 +322,16 @@ private fun StoredFavorite.toFavorite() =
         position = position,
         customLabel = if (hasCustomLabel()) customLabel else null,
     )
+
+private fun LauncherAppId.toStoredHiddenApp(): StoredHiddenApp =
+    StoredHiddenApp
+        .newBuilder()
+        .setPackageName(packageName)
+        .setActivityName(activityName)
+        .setProfileSerialNumber(profileSerialNumber)
+        .build()
+
+private fun StoredHiddenApp.toAppId() = LauncherAppId(packageName, activityName, profileSerialNumber)
 
 private fun StoredFavorite.hasSameAppIdAs(appId: LauncherAppId) =
     packageName == appId.packageName &&

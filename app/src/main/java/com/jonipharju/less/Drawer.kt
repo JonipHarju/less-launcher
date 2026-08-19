@@ -45,6 +45,7 @@ import com.jonipharju.less.launcher.exceedSoftCap
 import com.jonipharju.less.launcher.hold
 import com.jonipharju.less.launcher.pinning
 import com.jonipharju.less.launcher.rankedFor
+import com.jonipharju.less.launcher.withoutHidden
 import kotlinx.coroutines.launch
 
 /** The full list of installed apps, its search field, and the way back out. */
@@ -57,10 +58,12 @@ internal fun Drawer(
     val settings by repository.settings.collectAsState()
     val installedApps by repository.installedApps.collectAsState()
     val favorites by repository.favorites.collectAsState()
+    val hiddenApps by repository.hiddenApps.collectAsState()
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
-    // A Favorite the user renamed answers to their own name for it as well as to its real one.
-    val rankedApps = installedApps.rankedFor(query, favorites.customLabels())
+    // A Hidden App is out of the Drawer entirely, search included. A Favorite the user renamed
+    // answers to their own name for it as well as to its real one.
+    val rankedApps = installedApps.withoutHidden(hiddenApps).rankedFor(query, favorites.customLabels())
     val searchFocusRequester = remember { FocusRequester() }
     val opensKeyboard = settings.opensKeyboardWithDrawer
     val drawerOpenDirection = settings.drawerOpenDirection
@@ -141,6 +144,10 @@ internal fun Drawer(
                     crowdedHome = (favorites + pin).exceedSoftCap()
                     scope.launch { repository.chooseFavorite(pin) }
                 }
+            }
+            MenuAction(label = stringResource(R.string.app_hide)) {
+                curated = null
+                scope.launch { repository.hideApp(app.id) }
             }
             MenuAction(label = stringResource(R.string.app_info)) {
                 curated = null

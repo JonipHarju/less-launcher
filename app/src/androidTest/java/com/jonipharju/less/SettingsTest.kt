@@ -16,9 +16,12 @@ import com.jonipharju.less.launcher.Favorite
 import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.HomeAlignment
 import com.jonipharju.less.launcher.IconMode
+import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.ShownFavorite
+import com.jonipharju.less.launcher.hiddenAmong
 import com.jonipharju.less.launcher.launcherAppFixture
 import com.jonipharju.less.launcher.shownAmong
+import com.jonipharju.less.launcher.withoutHidden
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -180,6 +183,73 @@ class SettingsTest {
 
         assertEquals(1, closes)
     }
+
+    @Test
+    fun theHiddenAppsListNamesEveryHiddenApp() {
+        settingsHiding("Clock", "Camera")
+
+        compose.onNodeWithText("Hidden apps").performScrollTo().assertExists()
+        compose.onNodeWithContentDescription("Unhide Camera").assertExists()
+        compose.onNodeWithContentDescription("Unhide Clock").assertExists()
+    }
+
+    @Test
+    fun theScreenSaysSoWhenNothingIsHidden() {
+        settingsHiding()
+
+        compose
+            .onNodeWithText("None hidden. Long-press an app in the Drawer to hide one.")
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun unhidingReturnsTheAppToTheDrawer() {
+        val repository = settingsHiding("Clock", "Camera")
+
+        compose.onNodeWithContentDescription("Unhide Clock").performScrollTo().performClick()
+
+        compose.runOnIdle {
+            assertEquals(listOf("Camera"), repository.hiddenAppLabels())
+            assertEquals(
+                listOf("Clock"),
+                repository.installedApps.value
+                    .withoutHidden(repository.hiddenApps.value)
+                    .map(LauncherApp::label),
+            )
+        }
+        compose.onNodeWithContentDescription("Unhide Clock").assertDoesNotExist()
+    }
+
+    @Test
+    fun anAppHiddenAndUnhiddenLeavesNothingBehind() {
+        val repository = settingsHiding("Clock")
+
+        compose.onNodeWithContentDescription("Unhide Clock").performScrollTo().performClick()
+
+        compose.runOnIdle { assertEquals(emptyList<String>(), repository.hiddenAppLabels()) }
+        compose
+            .onNodeWithText("None hidden. Long-press an app in the Drawer to hide one.")
+            .performScrollTo()
+            .assertExists()
+    }
+
+    /** Settings over a Drawer where every named app is installed and hidden. */
+    private fun settingsHiding(vararg labels: String): FakeLauncherRepository {
+        val repository = FakeLauncherRepository()
+        runBlocking {
+            labels.forEach { label ->
+                val app = launcherAppFixture(label)
+                repository.install(app)
+                repository.hideApp(app.id)
+            }
+        }
+
+        compose.setContent { Settings(repository, onClose = {}) }
+        return repository
+    }
+
+    private fun FakeLauncherRepository.hiddenAppLabels() = installedApps.value.hiddenAmong(hiddenApps.value).map(LauncherApp::label)
 
     /** Settings over a Home holding one Favorite per label, in the order given. */
     private fun settingsWith(vararg labels: String): FakeLauncherRepository {

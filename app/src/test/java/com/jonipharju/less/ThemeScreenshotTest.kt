@@ -73,16 +73,16 @@ class ThemeScreenshotTest {
     fun drawerUnderCoubronTheme() = captureDrawer(CoubronTheme)
 
     @Test
-    fun homeUnderRuinedChurchTheme() = captureHome(RuinedChurchTheme)
+    fun homeUnderMountCorcoranTheme() = captureHome(MountCorcoranTheme)
 
     @Test
-    fun drawerUnderRuinedChurchTheme() = captureDrawer(RuinedChurchTheme)
+    fun drawerUnderMountCorcoranTheme() = captureDrawer(MountCorcoranTheme)
 
     @Test
-    fun homeUnderSpringhouseTheme() = captureHome(SpringhouseTheme)
+    fun homeUnderDepartureTheme() = captureHome(DepartureTheme)
 
     @Test
-    fun drawerUnderSpringhouseTheme() = captureDrawer(SpringhouseTheme)
+    fun drawerUnderDepartureTheme() = captureDrawer(DepartureTheme)
 }
 
 private fun captureHome(

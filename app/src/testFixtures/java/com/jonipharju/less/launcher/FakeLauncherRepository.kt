@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class FakeLauncherRepository : LauncherRepository {
     private val mutableInstalledApps = MutableStateFlow<List<LauncherApp>>(emptyList())
     private val mutableFavorites = MutableStateFlow<List<Favorite>>(emptyList())
+    private val mutableHiddenApps = MutableStateFlow<Set<LauncherAppId>>(emptySet())
     private val mutableSettings = MutableStateFlow(LauncherSettings())
     private val mutableLaunchedApps = mutableListOf<LauncherApp>()
     private val mutableAppInfoShownFor = mutableListOf<LauncherAppId>()
@@ -13,6 +14,7 @@ class FakeLauncherRepository : LauncherRepository {
 
     override val installedApps = mutableInstalledApps.asStateFlow()
     override val favorites = mutableFavorites.asStateFlow()
+    override val hiddenApps = mutableHiddenApps.asStateFlow()
     override val settings = mutableSettings.asStateFlow()
     val launchedApps: List<LauncherApp> = mutableLaunchedApps
     val appInfoShownFor: List<LauncherAppId> = mutableAppInfoShownFor
@@ -25,6 +27,7 @@ class FakeLauncherRepository : LauncherRepository {
     fun uninstall(appId: LauncherAppId) {
         mutableInstalledApps.value = mutableInstalledApps.value.filterNot { it.id == appId }
         mutableFavorites.value = mutableFavorites.value.filterNot { it.appId == appId }
+        mutableHiddenApps.value = mutableHiddenApps.value - appId
     }
 
     fun makeUnavailable(appId: LauncherAppId) {
@@ -63,6 +66,14 @@ class FakeLauncherRepository : LauncherRepository {
 
     override suspend fun dismissFavorite(appId: LauncherAppId) {
         mutableFavorites.value = mutableFavorites.value.filterNot { it.appId == appId }
+    }
+
+    override suspend fun hideApp(appId: LauncherAppId) {
+        mutableHiddenApps.value = mutableHiddenApps.value + appId
+    }
+
+    override suspend fun unhideApp(appId: LauncherAppId) {
+        mutableHiddenApps.value = mutableHiddenApps.value - appId
     }
 
     override suspend fun reorderFavorites(order: List<LauncherAppId>) {

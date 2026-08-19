@@ -33,11 +33,13 @@ import com.jonipharju.less.launcher.DrawerOpenDirection
 import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.HomeAlignment
 import com.jonipharju.less.launcher.IconMode
+import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.LauncherSettings
 import com.jonipharju.less.launcher.ShownFavorite
 import com.jonipharju.less.launcher.exceedSoftCap
+import com.jonipharju.less.launcher.hiddenAmong
 import com.jonipharju.less.launcher.moved
 import com.jonipharju.less.launcher.renamedTo
 import com.jonipharju.less.launcher.shownAmong
@@ -96,6 +98,8 @@ internal fun Settings(
         )
 
         FavoritesEditor(repository)
+
+        HiddenApps(repository)
 
         ChoiceGroup(
             title = stringResource(R.string.settings_icon_mode),
@@ -160,6 +164,60 @@ private fun FavoritesEditor(repository: LauncherRepository) {
                 renaming = null
                 scope.launch { repository.chooseFavorite(shownFavorite.favorite.renamedTo(name)) }
             },
+        )
+    }
+}
+
+/**
+ * Every Hidden App in one place, so that hiding stays visible and reversible: the user reads
+ * off what they hid rather than having to remember it.
+ */
+@Composable
+private fun HiddenApps(repository: LauncherRepository) {
+    val installedApps by repository.installedApps.collectAsState()
+    val hiddenApps by repository.hiddenApps.collectAsState()
+    val scope = rememberCoroutineScope()
+    val hidden = installedApps.hiddenAmong(hiddenApps)
+
+    GroupTitle(stringResource(R.string.settings_hidden_apps))
+
+    if (hidden.isEmpty()) {
+        BasicText(
+            text = stringResource(R.string.settings_hidden_apps_empty),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+            style = settingsTextStyle(color = LocalTheme.current.secondaryTextColor, size = 16.sp),
+        )
+        return
+    }
+
+    hidden.forEach { app ->
+        HiddenAppRow(
+            app = app,
+            onUnhide = { scope.launch { repository.unhideApp(app.id) } },
+        )
+    }
+}
+
+/** One Hidden App, and the one control that undoes hiding it. */
+@Composable
+private fun HiddenAppRow(
+    app: LauncherApp,
+    onUnhide: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BasicText(
+            text = app.label,
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            style = settingsTextStyle(size = 20.sp),
+        )
+        GlyphControl(
+            glyph = "↩",
+            description = stringResource(R.string.app_unhide, app.label),
+            onClick = onUnhide,
         )
     }
 }

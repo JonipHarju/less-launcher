@@ -6,6 +6,7 @@ option java_multiple_files = true;
 message LauncherUserData {
   repeated StoredFavorite favorites = 1;
   LauncherSettings settings = 2;
+  repeated StoredHiddenApp hidden_apps = 3;
 }
 
 message StoredFavorite {
@@ -14,6 +15,12 @@ message StoredFavorite {
   int64 profile_serial_number = 3;
   int32 position = 4;
   optional string custom_label = 5;
+}
+
+message StoredHiddenApp {
+  string package_name = 1;
+  string activity_name = 2;
+  int64 profile_serial_number = 3;
 }
 
 message LauncherSettings {

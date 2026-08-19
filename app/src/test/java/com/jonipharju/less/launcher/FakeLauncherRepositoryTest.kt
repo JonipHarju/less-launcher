@@ -202,4 +202,87 @@ class FakeLauncherRepositoryTest {
 
         assertEquals(listOf(app), repository.launchedApps)
     }
+
+    @Test
+    fun `a hidden app stays installed and drops out of the Drawer's listing`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            val camera = launcherAppFixture(label = "Camera")
+            repository.install(clock)
+            repository.install(camera)
+
+            repository.hideApp(clock.id)
+
+            assertEquals(setOf(clock.id), repository.hiddenApps.value)
+            assertEquals(listOf(camera, clock), repository.installedApps.value)
+            assertEquals(listOf(camera), repository.installedApps.value.withoutHidden(repository.hiddenApps.value))
+        }
+
+    @Test
+    fun `unhiding an app returns it to the Drawer's listing`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.hideApp(clock.id)
+
+            repository.unhideApp(clock.id)
+
+            assertEquals(emptySet<LauncherAppId>(), repository.hiddenApps.value)
+            assertEquals(listOf(clock), repository.installedApps.value.withoutHidden(repository.hiddenApps.value))
+        }
+
+    @Test
+    fun `hiding an app twice hides it once`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+
+            repository.hideApp(clock.id)
+            repository.hideApp(clock.id)
+
+            assertEquals(setOf(clock.id), repository.hiddenApps.value)
+        }
+
+    @Test
+    fun `hiding a Favorite leaves it on Home`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.chooseFavorite(Favorite(clock.id, position = 0))
+
+            repository.hideApp(clock.id)
+
+            assertEquals(listOf(Favorite(clock.id, position = 0)), repository.favorites.value)
+        }
+
+    @Test
+    fun `uninstalling a hidden app forgets that it was hidden`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.hideApp(clock.id)
+
+            repository.uninstall(clock.id)
+
+            assertEquals(emptySet<LauncherAppId>(), repository.hiddenApps.value)
+        }
+
+    @Test
+    fun `an unavailable app stays hidden until it returns`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.hideApp(clock.id)
+
+            repository.makeUnavailable(clock.id)
+            repository.makeAvailable(clock)
+
+            assertEquals(setOf(clock.id), repository.hiddenApps.value)
+        }
 }

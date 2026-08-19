@@ -25,7 +25,7 @@ internal val NearBlackTheme =
         textColor = Color.White,
         secondaryTextColor = Color(0xFFE8E8E8),
         accentColor = Color(0xFFFFFFFF),
-        iconMode = IconMode.Hidden,
+        iconMode = IconMode.Off,
         drawerTreatment = DrawerTreatment.FlatTranslucent,
     )
 
@@ -50,7 +50,7 @@ internal val OffWhiteTheme =
         textColor = Color(0xFF1A1916),
         secondaryTextColor = Color(0xFF3F3C36),
         accentColor = Color(0xFF1A1916),
-        iconMode = IconMode.Hidden,
+        iconMode = IconMode.Off,
         drawerTreatment = DrawerTreatment.FlatTranslucent,
     )
 
@@ -125,7 +125,7 @@ internal val RuinedChurchTheme =
         textColor = Color(0xFF2A2218),
         secondaryTextColor = Color(0xFF4A3C2C),
         accentColor = Color(0xFF3D2E22),
-        iconMode = IconMode.Hidden,
+        iconMode = IconMode.Off,
         drawerTreatment = DrawerTreatment.FlatTranslucent,
     )
 

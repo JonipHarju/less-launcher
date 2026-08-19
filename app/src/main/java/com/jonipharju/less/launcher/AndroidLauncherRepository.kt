@@ -7,10 +7,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.UserHandle
 import android.os.UserManager
+import androidx.compose.ui.graphics.asImageBitmap
 import com.jonipharju.less.launcher.proto.StoredFavorite
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -234,6 +239,7 @@ class AndroidLauncherRepository(
                             profileSerialNumber = profileSerialNumber,
                         ),
                     label = activity.label.toString(),
+                    icon = activity.getIcon(context.resources.displayMetrics.densityDpi).toAppIcon(),
                 )
             }
         } catch (_: SecurityException) {
@@ -241,6 +247,29 @@ class AndroidLauncherRepository(
         }
     }
 }
+
+private fun Drawable.toAppIcon(): AppIcon {
+    val monochrome = (this as? AdaptiveIconDrawable)?.monochrome
+    return AppIcon(original = rendered(), themeable = monochrome?.asAdaptiveIcon()?.rendered())
+}
+
+/**
+ * A monochrome layer drawn on its own keeps the adaptive icon's safe-zone margin, so its glyph
+ * covers barely a third of the bitmap — beside a full-bleed original it reads as a second, smaller
+ * icon size. Putting it back inside an [AdaptiveIconDrawable] gives it the original's geometry.
+ */
+private fun Drawable.asAdaptiveIcon(): AdaptiveIconDrawable = AdaptiveIconDrawable(null, constantState?.newDrawable()?.mutate() ?: this)
+
+private fun Drawable.rendered() =
+    Bitmap
+        .createBitmap(
+            intrinsicWidth.coerceAtLeast(1),
+            intrinsicHeight.coerceAtLeast(1),
+            Bitmap.Config.ARGB_8888,
+        ).also { bitmap ->
+            setBounds(0, 0, bitmap.width, bitmap.height)
+            draw(Canvas(bitmap))
+        }.asImageBitmap()
 
 private fun Favorite.toProto(): StoredFavorite =
     StoredFavorite
@@ -323,14 +352,14 @@ private fun IconMode.toProto() =
     when (this) {
         IconMode.Original -> StoredIconMode.ICON_MODE_ORIGINAL
         IconMode.Tinted -> StoredIconMode.ICON_MODE_TINTED
-        IconMode.Hidden -> StoredIconMode.ICON_MODE_HIDDEN
+        IconMode.Off -> StoredIconMode.ICON_MODE_OFF
     }
 
 private fun StoredIconMode.toIconMode(): IconMode? =
     when (this) {
         StoredIconMode.ICON_MODE_ORIGINAL -> IconMode.Original
         StoredIconMode.ICON_MODE_TINTED -> IconMode.Tinted
-        StoredIconMode.ICON_MODE_HIDDEN -> IconMode.Hidden
+        StoredIconMode.ICON_MODE_OFF -> IconMode.Off
         StoredIconMode.ICON_MODE_UNSPECIFIED,
         StoredIconMode.UNRECOGNIZED,
         -> null

@@ -1,9 +1,11 @@
 package com.jonipharju.less
 
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -62,6 +65,7 @@ internal fun Drawer(
     val opensKeyboard = settings.opensKeyboardWithDrawer
     val drawerOpenDirection = settings.drawerOpenDirection
     val theme = LocalTheme.current
+    val iconMode = effectiveIconMode(theme, settings.iconModeOverride)
 
     var curated by remember { mutableStateOf<LauncherApp?>(null) }
     var crowdedHome by remember { mutableStateOf(false) }
@@ -97,23 +101,32 @@ internal fun Drawer(
                     "${app.id.profileSerialNumber}:${app.id.packageName}/${app.id.activityName}"
                 },
             ) { app ->
-                BasicText(
-                    text = app.label,
+                Row(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .combinedClickable(
                                 onClick = { repository.launch(app) },
                                 onLongClick = { curated = app },
-                            ).padding(horizontal = 24.dp, vertical = 16.dp),
-                    style =
-                        TextStyle(
-                            color = theme.textColor,
-                            fontFamily = theme.fontFamily,
-                            fontSize = theme.typeScale.app.size,
-                            fontWeight = theme.typeScale.app.weight,
-                        ),
-                )
+                                // Split 10 + 6 so the 32dp icon sets the row height, while a row
+                                // with icons off keeps the 16dp the label had on its own.
+                            ).padding(horizontal = 24.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(LauncherIconGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LauncherAppIcon(app.icon, iconMode)
+                    BasicText(
+                        text = app.label,
+                        modifier = Modifier.padding(vertical = 6.dp),
+                        style =
+                            TextStyle(
+                                color = theme.textColor,
+                                fontFamily = theme.fontFamily,
+                                fontSize = theme.typeScale.app.size,
+                                fontWeight = theme.typeScale.app.weight,
+                            ),
+                    )
+                }
             }
         }
     }

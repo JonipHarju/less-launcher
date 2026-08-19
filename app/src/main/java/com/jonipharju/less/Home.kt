@@ -1,8 +1,10 @@
 package com.jonipharju.less
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jonipharju.less.launcher.HomeAlignment
+import com.jonipharju.less.launcher.IconMode
 import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.ShownFavorite
@@ -59,6 +62,7 @@ internal fun Home(
     val scope = rememberCoroutineScope()
     val drawerOpenDirection = settings.drawerOpenDirection
     val theme = LocalTheme.current
+    val iconMode = effectiveIconMode(theme, settings.iconModeOverride)
 
     var curated by remember { mutableStateOf<LauncherAppId?>(null) }
     var renaming by remember { mutableStateOf<LauncherAppId?>(null) }
@@ -90,6 +94,7 @@ internal fun Home(
             horizontalAlignment = settings.homeAlignment.asHorizontalAlignment(),
         ) {
             val textAlign = settings.homeAlignment.asTextAlign()
+            val rowArrangement = settings.homeAlignment.asRowArrangement()
             BasicText(
                 text = timeText,
                 modifier = Modifier.clickable(onClick = onOpenClock),
@@ -128,6 +133,8 @@ internal fun Home(
                         FavoriteRow(
                             shownFavorite = shownFavorite,
                             textAlign = textAlign,
+                            rowArrangement = rowArrangement,
+                            iconMode = iconMode,
                             onLaunch = { repository.launch(shownFavorite.app) },
                             onCurate = { curated = shownFavorite.favorite.appId },
                             onDragBy = { rows ->
@@ -231,6 +238,8 @@ private fun TombstoneRow(
 private fun FavoriteRow(
     shownFavorite: ShownFavorite,
     textAlign: TextAlign,
+    rowArrangement: Arrangement.Horizontal,
+    iconMode: IconMode,
     onLaunch: () -> Unit,
     onCurate: () -> Unit,
     onDragBy: (Int) -> Unit,
@@ -241,13 +250,11 @@ private fun FavoriteRow(
     // way there is carried into the next row rather than thrown away.
     var carry by remember { mutableFloatStateOf(0f) }
 
-    BasicText(
-        text = shownFavorite.label,
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .height(FavoriteRowHeight)
-                .wrapContentHeight(Alignment.CenterVertically)
                 .onTapLongPressOrDrag(
                     key = shownFavorite.favorite.appId,
                     onTap = onLaunch,
@@ -268,8 +275,17 @@ private fun FavoriteRow(
                         onDragEnd()
                     },
                 ),
-        style = themedAppTextStyle(color = LocalTheme.current.textColor, textAlign = textAlign),
-    )
+        horizontalArrangement = rowArrangement,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LauncherAppIcon(shownFavorite.app?.icon, iconMode)
+        BasicText(
+            text = shownFavorite.label,
+            // Shrinkable but not filling, so the arrangement can centre icon and label together.
+            modifier = Modifier.weight(1f, fill = false),
+            style = themedAppTextStyle(color = LocalTheme.current.textColor, textAlign = textAlign),
+        )
+    }
 }
 
 /** Rename, unpin, app info and uninstall, for the Favorite the user is long-pressing. */
@@ -315,6 +331,13 @@ private fun HomeAlignment.asHorizontalAlignment() =
     when (this) {
         HomeAlignment.Left -> Alignment.Start
         HomeAlignment.Centred -> Alignment.CenterHorizontally
+    }
+
+/** Centred Home centres a Favorite's icon and label as one group, not the label on its own. */
+private fun HomeAlignment.asRowArrangement(): Arrangement.Horizontal =
+    when (this) {
+        HomeAlignment.Left -> Arrangement.spacedBy(LauncherIconGap, Alignment.Start)
+        HomeAlignment.Centred -> Arrangement.spacedBy(LauncherIconGap, Alignment.CenterHorizontally)
     }
 
 private fun HomeAlignment.asTextAlign() =

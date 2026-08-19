@@ -115,6 +115,12 @@ internal val SharedTypeScale =
 
 internal val LocalTheme = staticCompositionLocalOf { NearBlackTheme }
 
+/** The global choice wins; otherwise the active Theme's authored Icon Mode is used. */
+internal fun effectiveIconMode(
+    theme: Theme,
+    override: IconMode?,
+): IconMode = override ?: theme.iconMode
+
 /** The Wallpaper supplied to a themed surface by Android or by a deterministic test. */
 internal sealed interface SurfaceWallpaper {
     /** The system-owned Wallpaper already visible through Less's transparent window. */

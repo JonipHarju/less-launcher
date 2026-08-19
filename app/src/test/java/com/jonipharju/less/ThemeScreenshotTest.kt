@@ -153,9 +153,13 @@ private fun screenshotIcon(index: Int): AppIcon {
         radius = 22f,
         paint = Paint().apply { color = listOf(Color.Red, Color.Green, Color.Blue, Color.Yellow)[index] },
     )
-    // Same radius as the original: the repository puts a Themeable Layer back inside an adaptive
-    // icon, so both layers reach the launcher at the same geometry.
+    // A glyph on transparency, reaching the same width as the original: that is what the repository
+    // renders a Themeable Layer as, and Tinted Icon Mode paints this shape in the accent colour.
     val themeable = ImageBitmap(48, 48)
-    Canvas(themeable).drawCircle(center = Offset(24f, 24f), radius = 22f, paint = Paint().apply { color = Color.Black })
+    Canvas(themeable).apply {
+        val paint = Paint().apply { color = Color.Black }
+        drawRect(20f, 2f, 28f, 46f, paint)
+        drawRect(2f, 20f, 46f, 28f, paint)
+    }
     return AppIcon(original = original, themeable = themeable.takeIf { index % 2 == 0 })
 }

@@ -21,6 +21,7 @@ message LauncherSettings {
   DrawerOpenDirection drawer_open_direction = 2;
   HomeAlignment home_alignment = 3;
   optional bool opens_keyboard_with_drawer = 4;
+  optional string theme_id = 5;
 }
 
 enum IconMode {

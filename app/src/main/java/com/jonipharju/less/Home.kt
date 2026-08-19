@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -98,6 +99,7 @@ internal fun Home(
                         fontFamily = theme.fontFamily,
                         fontSize = theme.typeScale.clock.size,
                         fontWeight = theme.typeScale.clock.weight,
+                        shadow = textHalo(theme.textColor),
                     ),
             )
             BasicText(
@@ -109,6 +111,7 @@ internal fun Home(
                         fontFamily = theme.fontFamily,
                         fontSize = theme.typeScale.date.size,
                         fontWeight = theme.typeScale.date.weight,
+                        shadow = textHalo(theme.secondaryTextColor),
                     ),
             )
             shown.forEach { shownFavorite ->
@@ -322,7 +325,7 @@ private fun HomeAlignment.asTextAlign() =
 
 @Composable
 private fun themedAppTextStyle(
-    color: androidx.compose.ui.graphics.Color,
+    color: Color,
     textAlign: TextAlign,
 ): TextStyle {
     val theme = LocalTheme.current
@@ -332,5 +335,6 @@ private fun themedAppTextStyle(
         fontSize = theme.typeScale.app.size,
         fontWeight = theme.typeScale.app.weight,
         textAlign = textAlign,
+        shadow = textHalo(color),
     )
 }

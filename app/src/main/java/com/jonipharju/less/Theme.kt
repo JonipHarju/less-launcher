@@ -10,11 +10,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
@@ -33,7 +39,20 @@ internal data class Credit(
 internal data class Scrim(
     val top: Color,
     val bottom: Color,
-)
+) {
+    /** Home keeps the Wallpaper visible; Drawer and Settings use the full stops. */
+    fun forHome(): Scrim =
+        Scrim(
+            top = top.copy(alpha = 0.36f),
+            bottom = bottom.copy(alpha = 0.28f),
+        )
+}
+
+/** A soft halo so Home text stays readable over a busy Wallpaper. */
+internal fun textHalo(text: Color): Shadow {
+    val glow = if (text.luminance() > 0.5f) Color.Black.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.6f)
+    return Shadow(color = glow, offset = Offset.Zero, blurRadius = 16f)
+}
 
 /** The size and weight a Theme gives one kind of text. */
 internal data class ThemeTextStyle(
@@ -57,6 +76,8 @@ internal enum class DrawerTreatment {
 
 /** Authored appearance data. A Theme cannot change layout or launcher behaviour. */
 internal data class Theme(
+    val id: String,
+    val name: String,
     @DrawableRes val wallpaperAsset: Int,
     val credit: Credit,
     val scrim: Scrim,
@@ -69,33 +90,27 @@ internal data class Theme(
     val drawerTreatment: DrawerTreatment,
 )
 
-internal val NearBlackTheme =
-    Theme(
-        wallpaperAsset = R.drawable.near_black_wallpaper,
-        credit =
-            Credit(
-                artist = "Less",
-                title = "Near Black",
-                year = "2026",
-                collection = "Generated Themes",
-                source = "Generated for Less",
-            ),
-        // Every stop is at least 90% opaque black. Even a white Wallpaper therefore
-        // reaches at most 10% luminance, leaving both text colours above WCAG AA contrast.
-        scrim = Scrim(top = Color.Black.copy(alpha = 0.94f), bottom = Color.Black.copy(alpha = 0.90f)),
-        fontFamily = FontFamily.SansSerif,
-        typeScale =
-            ThemeTypeScale(
-                clock = ThemeTextStyle(48.sp, FontWeight.Light),
-                date = ThemeTextStyle(18.sp, FontWeight.Normal),
-                app = ThemeTextStyle(24.sp, FontWeight.Normal),
-                search = ThemeTextStyle(18.sp, FontWeight.Normal),
-            ),
-        textColor = Color.White,
-        secondaryTextColor = Color(0xFFE8E8E8),
-        accentColor = Color(0xFFFFFFFF),
-        iconMode = IconMode.Hidden,
-        drawerTreatment = DrawerTreatment.FlatTranslucent,
+@OptIn(ExperimentalTextApi::class)
+internal val Manrope =
+    FontFamily(
+        Font(
+            R.font.manrope,
+            FontWeight.Normal,
+            variationSettings = FontVariation.Settings(FontVariation.weight(400)),
+        ),
+        Font(
+            R.font.manrope,
+            FontWeight.Medium,
+            variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+        ),
+    )
+
+internal val SharedTypeScale =
+    ThemeTypeScale(
+        clock = ThemeTextStyle(48.sp, FontWeight.Medium),
+        date = ThemeTextStyle(18.sp, FontWeight.Normal),
+        app = ThemeTextStyle(24.sp, FontWeight.Medium),
+        search = ThemeTextStyle(18.sp, FontWeight.Normal),
     )
 
 internal val LocalTheme = staticCompositionLocalOf { NearBlackTheme }
@@ -116,6 +131,7 @@ internal fun ThemedSurface(
     wallpaper: SurfaceWallpaper,
     modifier: Modifier = Modifier,
     theme: Theme = NearBlackTheme,
+    scrim: Scrim? = theme.scrim,
     content: @Composable BoxScope.() -> Unit,
 ) {
     CompositionLocalProvider(LocalTheme provides theme) {
@@ -132,7 +148,13 @@ internal fun ThemedSurface(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .background(Brush.verticalGradient(listOf(theme.scrim.top, theme.scrim.bottom))),
+                        .then(
+                            if (scrim != null) {
+                                Modifier.background(Brush.verticalGradient(listOf(scrim.top, scrim.bottom)))
+                            } else {
+                                Modifier
+                            },
+                        ),
                 content = content,
             )
         }

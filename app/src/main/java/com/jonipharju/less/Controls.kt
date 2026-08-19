@@ -6,11 +6,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -31,7 +31,11 @@ internal fun GlyphControl(
                 .clickable(onClick = onClick)
                 .padding(horizontal = 12.dp, vertical = 4.dp)
                 .semantics { contentDescription = description },
-        style = TextStyle(color = Color.LightGray, fontSize = 22.sp),
+        style =
+            TextStyle(
+                color = LocalTheme.current.secondaryTextColor,
+                fontSize = 22.sp,
+            ),
     )
 }
 
@@ -39,7 +43,11 @@ internal fun GlyphControl(
 @Composable
 internal fun TopBar(content: @Composable RowScope.() -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 24.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 24.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
         content = content,

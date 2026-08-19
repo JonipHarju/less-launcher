@@ -1,8 +1,11 @@
 package com.jonipharju.less
 
+import android.app.Activity
+import android.app.WallpaperManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.icu.text.DateFormat
 import android.net.Uri
 import android.os.Bundle
@@ -10,20 +13,30 @@ import android.provider.AlarmClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import com.jonipharju.less.launcher.AndroidLauncherRepository
 import com.jonipharju.less.launcher.LauncherRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+import java.io.IOException
 import java.util.Date
 import java.util.Locale
 
@@ -38,6 +51,7 @@ class MainActivity : ComponentActivity() {
     private val homeRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         launcherRepository = AndroidLauncherRepository(applicationContext)
         setContent {
@@ -50,6 +64,9 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 homeRequests = homeRequests,
+                onApplyWallpaper = { theme ->
+                    lifecycleScope.launch(Dispatchers.IO) { applyThemeWallpaper(theme) }
+                },
             )
         }
     }
@@ -62,6 +79,20 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         launcherRepository.close()
         super.onDestroy()
+    }
+
+    private fun applyThemeWallpaper(theme: Theme) {
+        val wallpaper = BitmapFactory.decodeResource(resources, theme.wallpaperAsset) ?: return
+        try {
+            WallpaperManager.getInstance(applicationContext).setBitmap(
+                wallpaper,
+                null,
+                true,
+                WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK,
+            )
+        } catch (_: IOException) {
+            // The system can refuse a wallpaper write; picking the Theme already succeeded.
+        }
     }
 
     private fun startActivitySafely(intent: Intent) {
@@ -79,10 +110,22 @@ internal fun LessLauncher(
     onOpenClock: () -> Unit = {},
     onOpenCalendar: (Long) -> Unit = {},
     homeRequests: Flow<Unit> = emptyFlow(),
+    onApplyWallpaper: (Theme) -> Unit = {},
 ) {
     var surface by remember { mutableStateOf(LauncherSurface.Home) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val context = LocalContext.current
+    val settings by repository.settings.collectAsState()
+    val theme = themeById(settings.themeId)
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        val lightBars = theme.textColor.luminance() < 0.5f
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = lightBars
+            isAppearanceLightNavigationBars = lightBars
+        }
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -99,7 +142,11 @@ internal fun LessLauncher(
         surface = if (surface == LauncherSurface.Settings) LauncherSurface.Drawer else LauncherSurface.Home
     }
 
-    ThemedSurface(wallpaper = SurfaceWallpaper.System) {
+    ThemedSurface(
+        wallpaper = SurfaceWallpaper.System,
+        theme = theme,
+        scrim = if (surface == LauncherSurface.Home) theme.scrim.forHome() else theme.scrim,
+    ) {
         when (surface) {
             LauncherSurface.Home ->
                 Home(
@@ -120,6 +167,7 @@ internal fun LessLauncher(
                 Settings(
                     repository = repository,
                     onClose = { surface = LauncherSurface.Drawer },
+                    onApplyWallpaper = onApplyWallpaper,
                 )
         }
     }

@@ -1,7 +1,8 @@
 # Theme wallpapers come from CC0 museum Open Access collections
 
 Bundled wallpapers are sourced from public-domain museum Open Access programmes
-(the Met, the Smithsonian, the Art Institute of Chicago, the Rijksmuseum), which
+(the Met, the Smithsonian, the Art Institute of Chicago, the Rijksmuseum, the
+National Gallery of Art), which
 release high-resolution images under CC0, and each carries a Credit naming its
 artist and collection.
 

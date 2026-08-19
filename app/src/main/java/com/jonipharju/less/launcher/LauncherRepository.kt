@@ -22,11 +22,14 @@ data class Favorite(
     val customLabel: String? = null,
 )
 
+val DefaultThemeId = "near-black"
+
 data class LauncherSettings(
     val iconModeOverride: IconMode? = null,
     val drawerOpenDirection: DrawerOpenDirection = DrawerOpenDirection.SwipeUp,
     val homeAlignment: HomeAlignment = HomeAlignment.Left,
     val opensKeyboardWithDrawer: Boolean = true,
+    val themeId: String = DefaultThemeId,
 )
 
 enum class IconMode {

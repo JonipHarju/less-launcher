@@ -66,6 +66,24 @@ internal fun themedTextStyle(
     return TextStyle(color = color, fontFamily = theme.fontFamily, fontSize = size)
 }
 
+/**
+ * A word or two the user taps to act — the way on through Setup, the standing offer in the
+ * Drawer. It wears the Theme's accent so that what acts is told apart from what merely reads.
+ */
+@Composable
+internal fun TextControl(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    color: Color = LocalTheme.current.accentColor,
+) {
+    BasicText(
+        text = label,
+        modifier = modifier.clickable(onClick = onClick).padding(horizontal = 24.dp, vertical = 14.dp),
+        style = themedTextStyle(color = color, size = 20.sp),
+    )
+}
+
 /** The heading over one group of options. */
 @Composable
 internal fun GroupTitle(title: String) {

@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.jonipharju.less.launcher.proto.DrawerOpenDirection as StoredDrawerOpenDirection
@@ -52,6 +53,7 @@ class AndroidLauncherRepository(
     private val userDataStore = this.context.launcherUserDataStore
     private val mutableInstalledApps = MutableStateFlow<List<LauncherApp>>(emptyList())
     private val mutableHoldsHomeRole = MutableStateFlow(false)
+    private val mutableHasReadStoredSettings = MutableStateFlow(false)
     private val ownProfileSerialNumber = userManager.getSerialNumberForUser(Process.myUserHandle())
     private var isClosed = false
 
@@ -68,7 +70,9 @@ class AndroidLauncherRepository(
     override val settings =
         userDataStore.data
             .map { userData -> userData.settings.toLauncherSettings() }
+            .onEach { mutableHasReadStoredSettings.value = true }
             .stateIn(scope, SharingStarted.Eagerly, LauncherSettings())
+    override val hasReadStoredSettings = mutableHasReadStoredSettings.asStateFlow()
 
     private val launcherCallback =
         object : LauncherApps.Callback() {
@@ -169,20 +173,28 @@ class AndroidLauncherRepository(
     }
 
     /**
-     * The activity answering an everyday intent is rarely the one the Drawer lists, so the
-     * answer is matched back to the app's own entry by package rather than used as a component.
+     * The activity answering an Everyday Intent is rarely the one the Drawer lists, so the answer
+     * is matched back to the app's own entry by package rather than used as a component. Where
+     * several apps answer and the user has picked no default the platform names its own chooser,
+     * which matches no installed app and so falls through to the apps that actually answered.
      */
     override fun appAnswering(intent: EverydayIntent): LauncherAppId? {
-        val answer =
-            context.packageManager.resolveActivity(intent.asIntent(), PackageManager.MATCH_DEFAULT_ONLY)
-                ?: return null
-        val candidates = mutableInstalledApps.value.filter { it.id.packageName == answer.activityInfo.packageName }
+        val query = intent.asIntent()
+        val packageManager = context.packageManager
+        val chosen = packageManager.resolveActivity(query, PackageManager.MATCH_DEFAULT_ONLY)
+        val offered = packageManager.queryIntentActivities(query, PackageManager.MATCH_DEFAULT_ONLY)
 
-        // A work profile's clone of the same app answers too; Setup proposes the personal one.
-        return (
-            candidates.firstOrNull { it.id.profileSerialNumber == ownProfileSerialNumber }
-                ?: candidates.firstOrNull()
-        )?.id
+        return (listOfNotNull(chosen) + offered)
+            .firstNotNullOfOrNull { answer -> appNamed(answer.activityInfo.packageName) }
+            ?.id
+    }
+
+    /** The Drawer's own entry for [packageName], preferring the personal profile's copy of it. */
+    private fun appNamed(packageName: String): LauncherApp? {
+        val candidates = mutableInstalledApps.value.filter { it.id.packageName == packageName }
+
+        return candidates.firstOrNull { it.id.profileSerialNumber == ownProfileSerialNumber }
+            ?: candidates.firstOrNull()
     }
 
     /**
@@ -453,7 +465,7 @@ private fun StoredDrawerOpenDirection.toDrawerOpenDirection(): DrawerOpenDirecti
 private fun SetupStep.toProto() =
     when (this) {
         SetupStep.Theme -> StoredSetupStep.SETUP_STEP_THEME
-        SetupStep.DefaultLauncher -> StoredSetupStep.SETUP_STEP_DEFAULT_LAUNCHER
+        SetupStep.HomeRole -> StoredSetupStep.SETUP_STEP_HOME_ROLE
         SetupStep.Favorites -> StoredSetupStep.SETUP_STEP_FAVORITES
         SetupStep.Done -> StoredSetupStep.SETUP_STEP_DONE
     }
@@ -461,7 +473,7 @@ private fun SetupStep.toProto() =
 private fun StoredSetupStep.toSetupStep(): SetupStep? =
     when (this) {
         StoredSetupStep.SETUP_STEP_THEME -> SetupStep.Theme
-        StoredSetupStep.SETUP_STEP_DEFAULT_LAUNCHER -> SetupStep.DefaultLauncher
+        StoredSetupStep.SETUP_STEP_HOME_ROLE -> SetupStep.HomeRole
         StoredSetupStep.SETUP_STEP_FAVORITES -> SetupStep.Favorites
         StoredSetupStep.SETUP_STEP_DONE -> SetupStep.Done
         StoredSetupStep.SETUP_STEP_UNSPECIFIED,

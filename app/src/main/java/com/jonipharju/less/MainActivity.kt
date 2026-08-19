@@ -126,7 +126,10 @@ internal fun LessLauncher(
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val context = LocalContext.current
     val settings by repository.settings.collectAsState()
-    val inSetup = settings.setupStep.isRunning()
+    val hasReadStoredSettings by repository.hasReadStoredSettings.collectAsState()
+    // A launcher that has run before must not flash Setup on the way in: until the store has
+    // answered, `settings` is only defaults, and one of those defaults is that Setup never ran.
+    val inSetup = hasReadStoredSettings && settings.setupStep.isRunning()
     val theme = themeById(settings.themeId)
     val view = LocalView.current
     SideEffect {
@@ -159,7 +162,9 @@ internal fun LessLauncher(
         // Setup wears the full Scrim: it is a surface to read, not a Wallpaper to admire.
         scrim = if (surface == LauncherSurface.Home && !inSetup) theme.scrim.forHome() else theme.scrim,
     ) {
-        if (inSetup) {
+        if (!hasReadStoredSettings) {
+            // The Scrim over the Wallpaper, and nothing else, for the frames it takes to read.
+        } else if (inSetup) {
             Setup(repository = repository, onApplyWallpaper = onApplyWallpaper)
         } else {
             when (surface) {

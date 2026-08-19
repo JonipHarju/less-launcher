@@ -28,9 +28,9 @@ class SetupTest {
     }
 
     @Test
-    fun `the steps run Theme, then default launcher, then Favorites`() {
-        assertEquals(SetupStep.DefaultLauncher, SetupStep.Theme.next())
-        assertEquals(SetupStep.Favorites, SetupStep.DefaultLauncher.next())
+    fun `the steps run Theme, then the Home Role, then Favorites`() {
+        assertEquals(SetupStep.HomeRole, SetupStep.Theme.next())
+        assertEquals(SetupStep.Favorites, SetupStep.HomeRole.next())
         assertEquals(SetupStep.Done, SetupStep.Favorites.next())
     }
 
@@ -45,7 +45,7 @@ class SetupTest {
     @Test
     fun `there is nowhere to back out to from the first step`() {
         assertNull(SetupStep.Theme.previous())
-        assertEquals(SetupStep.Theme, SetupStep.DefaultLauncher.previous())
+        assertEquals(SetupStep.Theme, SetupStep.HomeRole.previous())
     }
 
     @Test
@@ -70,7 +70,7 @@ class SetupTest {
     fun `the proposed Favorites are the apps answering the everyday intents, in that order`() {
         assertEquals(
             listOf(phone, messages, camera, browser),
-            installed.answering(answers::get),
+            installed.proposedFavorites(answers::get),
         )
     }
 
@@ -78,14 +78,14 @@ class SetupTest {
     fun `an app answering two intents is proposed once`() {
         val everything = answers.mapValues { phone.id }
 
-        assertEquals(listOf(phone), installed.answering(everything::get))
+        assertEquals(listOf(phone), installed.proposedFavorites(everything::get))
     }
 
     @Test
     fun `an intent no app on the device answers is left out`() {
         val withoutCamera = answers - EverydayIntent.Camera
 
-        assertEquals(listOf(phone, messages, browser), installed.answering(withoutCamera::get))
+        assertEquals(listOf(phone, messages, browser), installed.proposedFavorites(withoutCamera::get))
     }
 
     @Test
@@ -93,12 +93,12 @@ class SetupTest {
         val uninstalled = launcherAppFixture(label = "Gone")
         val stale = answers + (EverydayIntent.Camera to uninstalled.id)
 
-        assertEquals(listOf(phone, messages, browser), installed.answering(stale::get))
+        assertEquals(listOf(phone, messages, browser), installed.proposedFavorites(stale::get))
     }
 
     @Test
     fun `the picker lists the proposed apps first and the rest alphabetically`() {
-        val proposed = installed.answering(answers::get)
+        val proposed = installed.proposedFavorites(answers::get)
 
         assertEquals(
             listOf(phone, messages, camera, browser, notes),
@@ -113,7 +113,7 @@ class SetupTest {
 
     @Test
     fun `the chosen apps become Favorites numbered in the order they were listed`() {
-        val listed = installed.proposedFirst(installed.answering(answers::get))
+        val listed = installed.proposedFirst(installed.proposedFavorites(answers::get))
 
         assertEquals(
             listOf(

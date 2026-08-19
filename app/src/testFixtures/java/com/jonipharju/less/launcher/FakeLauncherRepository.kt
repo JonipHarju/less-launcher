@@ -9,6 +9,7 @@ class FakeLauncherRepository : LauncherRepository {
     private val mutableHiddenApps = MutableStateFlow<Set<LauncherAppId>>(emptySet())
     private val mutableSettings = MutableStateFlow(LauncherSettings())
     private val mutableHoldsHomeRole = MutableStateFlow(false)
+    private val mutableHasReadStoredSettings = MutableStateFlow(true)
     private val mutableLaunchedApps = mutableListOf<LauncherApp>()
     private val mutableAppInfoShownFor = mutableListOf<LauncherAppId>()
     private val mutableUninstallsRequestedFor = mutableListOf<LauncherAppId>()
@@ -19,6 +20,7 @@ class FakeLauncherRepository : LauncherRepository {
     override val favorites = mutableFavorites.asStateFlow()
     override val hiddenApps = mutableHiddenApps.asStateFlow()
     override val settings = mutableSettings.asStateFlow()
+    override val hasReadStoredSettings = mutableHasReadStoredSettings.asStateFlow()
     override val holdsHomeRole = mutableHoldsHomeRole.asStateFlow()
     val launchedApps: List<LauncherApp> = mutableLaunchedApps
     val appInfoShownFor: List<LauncherAppId> = mutableAppInfoShownFor
@@ -34,6 +36,16 @@ class FakeLauncherRepository : LauncherRepository {
     /** The user has handed the Home Role to another launcher. */
     fun releaseHomeRole() {
         mutableHoldsHomeRole.value = false
+    }
+
+    /** A cold start, before what the user stored has been read back. */
+    fun withholdStoredSettings() {
+        mutableHasReadStoredSettings.value = false
+    }
+
+    /** The stored settings arrive, as they do a moment after a cold start. */
+    fun readStoredSettings() {
+        mutableHasReadStoredSettings.value = true
     }
 
     /** The user has been through Setup, which is where every surface but Setup begins. */

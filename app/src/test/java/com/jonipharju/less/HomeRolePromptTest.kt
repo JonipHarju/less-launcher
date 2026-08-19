@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config
 /** The standing offer in the Drawer to become the default launcher, and the end of it. */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [35])
-class DefaultLauncherPromptTest {
+class HomeRolePromptTest {
     @get:Rule
     val compose = createComposeRule()
 
@@ -28,7 +28,7 @@ class DefaultLauncherPromptTest {
     }
 
     @Test
-    fun theDrawerAsksWhileLessIsNotTheDefaultLauncher() {
+    fun theDrawerAsksWhileLessDoesNotHoldTheHomeRole() {
         drawerOf(FakeLauncherRepository())
 
         compose.onNodeWithText(prompt).assertExists()

@@ -1,6 +1,5 @@
 package com.jonipharju.less
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,7 +35,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.LauncherRepository
@@ -181,14 +179,10 @@ internal fun Drawer(
  */
 @Composable
 private fun HomeRolePrompt(onRequest: () -> Unit) {
-    BasicText(
-        text = stringResource(R.string.drawer_default_launcher_prompt),
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onRequest)
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-        style = themedTextStyle(color = LocalTheme.current.accentColor, size = 18.sp),
+    TextControl(
+        label = stringResource(R.string.drawer_home_role_prompt),
+        onClick = onRequest,
+        modifier = Modifier.fillMaxWidth(),
     )
 }
 

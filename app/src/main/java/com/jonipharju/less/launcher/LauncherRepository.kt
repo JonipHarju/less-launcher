@@ -69,6 +69,13 @@ interface LauncherRepository {
     val hiddenApps: StateFlow<Set<LauncherAppId>>
     val settings: StateFlow<LauncherSettings>
 
+    /**
+     * Whether what the user stored has been read yet. Until it has, [settings] is standing in
+     * with its own defaults — and one of those is that Setup has never run, so no surface may
+     * act on them before this turns true.
+     */
+    val hasReadStoredSettings: StateFlow<Boolean>
+
     /** Whether Less is the default launcher — whether the platform has given it the Home Role. */
     val holdsHomeRole: StateFlow<Boolean>
 

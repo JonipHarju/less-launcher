@@ -1,12 +1,13 @@
 package com.jonipharju.less.launcher
 
 /**
- * How far a new user has got through Setup. The order is deliberate: Less shows what it looks
- * like before it asks the user for anything, and only then asks to become their launcher.
+ * How far a new user has got through Setup. Declaration order is the order the user meets the
+ * steps, and [next] and [previous] walk it — so reordering these entries reorders Setup. The
+ * order is deliberate: Less shows what it looks like before it asks the user for anything.
  */
 enum class SetupStep {
     Theme,
-    DefaultLauncher,
+    HomeRole,
     Favorites,
     Done,
 }
@@ -39,11 +40,11 @@ internal fun SetupStep.isRunning(): Boolean = this != SetupStep.Done
 internal fun LauncherSettings.asksForHomeRole(holdsHomeRole: Boolean): Boolean = !hasHeldHomeRole && !holdsHomeRole
 
 /**
- * The Favorites Setup proposes: the installed app answering each everyday intent, in the order
+ * The Favorites Setup proposes: the installed app answering each Everyday Intent, in the order
  * the intents are named. One app answering two of them is proposed once, and an intent no app
  * on the device answers is simply left out.
  */
-internal fun List<LauncherApp>.answering(answer: (EverydayIntent) -> LauncherAppId?): List<LauncherApp> {
+internal fun List<LauncherApp>.proposedFavorites(answer: (EverydayIntent) -> LauncherAppId?): List<LauncherApp> {
     val installedById = associateBy(LauncherApp::id)
 
     return EverydayIntent.entries

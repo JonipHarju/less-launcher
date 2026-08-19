@@ -54,6 +54,21 @@ class SetupScreenTest {
     }
 
     @Test
+    fun aLauncherThatHasRunBeforeNeverFlashesSetupOnTheWayIn() {
+        val repository = deviceOutOfTheBox()
+        // The stored settings say nothing yet, and their defaults say Setup has never run.
+        repository.withholdStoredSettings()
+        compose.setContent { LessLauncher(repository) }
+
+        compose.onNodeWithText("Pick a look").assertDoesNotExist()
+        compose.onNodeWithText("Continue").assertDoesNotExist()
+
+        compose.runOnIdle { repository.readStoredSettings() }
+
+        compose.onNodeWithText("Pick a look").assertExists()
+    }
+
+    @Test
     fun theThemePickedDuringSetupIsTheThemeSetupItselfWears() {
         val repository = deviceOutOfTheBox()
         val applied = mutableListOf<Theme>()
@@ -68,18 +83,18 @@ class SetupScreenTest {
     }
 
     @Test
-    fun theDefaultLauncherPromptFollowsTheThemePicker() {
+    fun theHomeRoleRequestFollowsTheThemePicker() {
         val repository = deviceOutOfTheBox()
         compose.setContent { LessLauncher(repository) }
 
         compose.onNodeWithText("Continue").performClick()
 
         compose.onNodeWithText("Make Less your launcher").assertExists()
-        compose.runOnIdle { assertEquals(SetupStep.DefaultLauncher, repository.settings.value.setupStep) }
+        compose.runOnIdle { assertEquals(SetupStep.HomeRole, repository.settings.value.setupStep) }
     }
 
     @Test
-    fun theDefaultLauncherStepAsksThePlatformForTheHomeRole() {
+    fun theHomeRoleStepAsksThePlatformForTheRole() {
         val repository = deviceOutOfTheBox()
         compose.setContent { LessLauncher(repository) }
         compose.onNodeWithText("Continue").performClick()
@@ -90,7 +105,7 @@ class SetupScreenTest {
     }
 
     @Test
-    fun theDefaultLauncherStepStopsAskingOnceThePlatformHasAnswered() {
+    fun theHomeRoleStepStopsAskingOnceThePlatformHasAnswered() {
         val repository = deviceOutOfTheBox()
         compose.setContent { LessLauncher(repository) }
         compose.onNodeWithText("Continue").performClick()

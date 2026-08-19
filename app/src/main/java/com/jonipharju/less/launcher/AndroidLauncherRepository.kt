@@ -9,10 +9,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.AdaptiveIconDrawable
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Process
@@ -20,7 +16,6 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
 import android.provider.Settings
-import androidx.compose.ui.graphics.asImageBitmap
 import com.jonipharju.less.launcher.proto.StoredFavorite
 import com.jonipharju.less.launcher.proto.StoredHiddenApp
 import kotlinx.coroutines.CoroutineScope
@@ -373,29 +368,6 @@ private fun EverydayIntent.asIntent(): Intent =
         EverydayIntent.Camera -> Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
         EverydayIntent.Browser -> Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_BROWSER)
     }
-
-private fun Drawable.toAppIcon(): AppIcon {
-    val monochrome = (this as? AdaptiveIconDrawable)?.monochrome
-    return AppIcon(original = rendered(), themeable = monochrome?.asAdaptiveIcon()?.rendered())
-}
-
-/**
- * A monochrome layer drawn on its own keeps the adaptive icon's safe-zone margin, so its glyph
- * covers barely a third of the bitmap — beside a full-bleed original it reads as a second, smaller
- * icon size. Putting it back inside an [AdaptiveIconDrawable] gives it the original's geometry.
- */
-private fun Drawable.asAdaptiveIcon(): AdaptiveIconDrawable = AdaptiveIconDrawable(null, constantState?.newDrawable()?.mutate() ?: this)
-
-private fun Drawable.rendered() =
-    Bitmap
-        .createBitmap(
-            intrinsicWidth.coerceAtLeast(1),
-            intrinsicHeight.coerceAtLeast(1),
-            Bitmap.Config.ARGB_8888,
-        ).also { bitmap ->
-            setBounds(0, 0, bitmap.width, bitmap.height)
-            draw(Canvas(bitmap))
-        }.asImageBitmap()
 
 private fun profileAvailabilityIntentFilter() =
     IntentFilter().apply {

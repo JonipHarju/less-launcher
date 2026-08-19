@@ -34,11 +34,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import com.jonipharju.less.launcher.proto.DrawerOpenDirection as StoredDrawerOpenDirection
-import com.jonipharju.less.launcher.proto.HomeAlignment as StoredHomeAlignment
-import com.jonipharju.less.launcher.proto.IconMode as StoredIconMode
-import com.jonipharju.less.launcher.proto.LauncherSettings as StoredLauncherSettings
-import com.jonipharju.less.launcher.proto.SetupStep as StoredSetupStep
 
 /** [LauncherRepository] backed by Android's profile-aware launcher APIs. */
 class AndroidLauncherRepository(
@@ -307,6 +302,22 @@ class AndroidLauncherRepository(
         }
     }
 
+    override suspend fun restoreConfiguration(configuration: LauncherConfiguration) {
+        userDataStore.updateData { userData ->
+            userData
+                .toBuilder()
+                .clearFavorites()
+                .addAllFavorites(configuration.favoritesInOrder().map(Favorite::toProto))
+                .clearHiddenApps()
+                .addAllHiddenApps(configuration.hiddenApps.map(LauncherAppId::toStoredHiddenApp))
+                .setSettings(
+                    configuration
+                        .settingsRestoredOnto(userData.settings.toLauncherSettings())
+                        .mergedInto(userData.settings),
+                ).build()
+        }
+    }
+
     override fun close() {
         if (isClosed) return
 
@@ -385,133 +396,6 @@ private fun Drawable.rendered() =
             setBounds(0, 0, bitmap.width, bitmap.height)
             draw(Canvas(bitmap))
         }.asImageBitmap()
-
-private fun Favorite.toProto(): StoredFavorite =
-    StoredFavorite
-        .newBuilder()
-        .setPackageName(appId.packageName)
-        .setActivityName(appId.activityName)
-        .setProfileSerialNumber(appId.profileSerialNumber)
-        .setPosition(position)
-        .also { builder -> customLabel?.let(builder::setCustomLabel) }
-        .build()
-
-private fun StoredFavorite.toFavorite() =
-    Favorite(
-        appId = LauncherAppId(packageName, activityName, profileSerialNumber),
-        position = position,
-        customLabel = if (hasCustomLabel()) customLabel else null,
-    )
-
-private fun LauncherAppId.toStoredHiddenApp(): StoredHiddenApp =
-    StoredHiddenApp
-        .newBuilder()
-        .setPackageName(packageName)
-        .setActivityName(activityName)
-        .setProfileSerialNumber(profileSerialNumber)
-        .build()
-
-private fun StoredHiddenApp.toAppId() = LauncherAppId(packageName, activityName, profileSerialNumber)
-
-private fun StoredFavorite.hasSameAppIdAs(appId: LauncherAppId) =
-    packageName == appId.packageName &&
-        activityName == appId.activityName &&
-        profileSerialNumber == appId.profileSerialNumber
-
-/** Every unset field falls back to the default the domain type declares, not to a repeated literal. */
-private fun StoredLauncherSettings.toLauncherSettings(): LauncherSettings {
-    val defaults = LauncherSettings()
-    return LauncherSettings(
-        iconModeOverride = if (hasIconModeOverride()) iconModeOverride.toIconMode() else defaults.iconModeOverride,
-        drawerOpenDirection = drawerOpenDirection.toDrawerOpenDirection() ?: defaults.drawerOpenDirection,
-        homeAlignment = homeAlignment.toHomeAlignment() ?: defaults.homeAlignment,
-        opensKeyboardWithDrawer =
-            if (hasOpensKeyboardWithDrawer()) opensKeyboardWithDrawer else defaults.opensKeyboardWithDrawer,
-        themeId = themeId.takeIf { it.isNotEmpty() } ?: defaults.themeId,
-        setupStep = setupStep.toSetupStep() ?: defaults.setupStep,
-        hasHeldHomeRole = if (hasHasHeldHomeRole()) hasHeldHomeRole else defaults.hasHeldHomeRole,
-    )
-}
-
-/** Writes onto [stored] rather than over it, so a field this type does not model survives. */
-private fun LauncherSettings.mergedInto(stored: StoredLauncherSettings): StoredLauncherSettings =
-    stored
-        .toBuilder()
-        .clearIconModeOverride()
-        .setDrawerOpenDirection(drawerOpenDirection.toProto())
-        .setHomeAlignment(homeAlignment.toProto())
-        .setOpensKeyboardWithDrawer(opensKeyboardWithDrawer)
-        .setThemeId(themeId)
-        .setSetupStep(setupStep.toProto())
-        .setHasHeldHomeRole(hasHeldHomeRole)
-        .also { builder -> iconModeOverride?.let { builder.iconModeOverride = it.toProto() } }
-        .build()
-
-private fun DrawerOpenDirection.toProto() =
-    when (this) {
-        DrawerOpenDirection.SwipeUp -> StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_SWIPE_UP
-        DrawerOpenDirection.SwipeDown -> StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_SWIPE_DOWN
-    }
-
-private fun StoredDrawerOpenDirection.toDrawerOpenDirection(): DrawerOpenDirection? =
-    when (this) {
-        StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_SWIPE_UP -> DrawerOpenDirection.SwipeUp
-        StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_SWIPE_DOWN -> DrawerOpenDirection.SwipeDown
-        StoredDrawerOpenDirection.DRAWER_OPEN_DIRECTION_UNSPECIFIED,
-        StoredDrawerOpenDirection.UNRECOGNIZED,
-        -> null
-    }
-
-private fun SetupStep.toProto() =
-    when (this) {
-        SetupStep.Theme -> StoredSetupStep.SETUP_STEP_THEME
-        SetupStep.HomeRole -> StoredSetupStep.SETUP_STEP_HOME_ROLE
-        SetupStep.Favorites -> StoredSetupStep.SETUP_STEP_FAVORITES
-        SetupStep.Done -> StoredSetupStep.SETUP_STEP_DONE
-    }
-
-private fun StoredSetupStep.toSetupStep(): SetupStep? =
-    when (this) {
-        StoredSetupStep.SETUP_STEP_THEME -> SetupStep.Theme
-        StoredSetupStep.SETUP_STEP_HOME_ROLE -> SetupStep.HomeRole
-        StoredSetupStep.SETUP_STEP_FAVORITES -> SetupStep.Favorites
-        StoredSetupStep.SETUP_STEP_DONE -> SetupStep.Done
-        StoredSetupStep.SETUP_STEP_UNSPECIFIED,
-        StoredSetupStep.UNRECOGNIZED,
-        -> null
-    }
-
-private fun HomeAlignment.toProto() =
-    when (this) {
-        HomeAlignment.Left -> StoredHomeAlignment.HOME_ALIGNMENT_LEFT
-        HomeAlignment.Centred -> StoredHomeAlignment.HOME_ALIGNMENT_CENTRED
-    }
-
-private fun StoredHomeAlignment.toHomeAlignment(): HomeAlignment? =
-    when (this) {
-        StoredHomeAlignment.HOME_ALIGNMENT_LEFT -> HomeAlignment.Left
-        StoredHomeAlignment.HOME_ALIGNMENT_CENTRED -> HomeAlignment.Centred
-        StoredHomeAlignment.HOME_ALIGNMENT_UNSPECIFIED,
-        StoredHomeAlignment.UNRECOGNIZED,
-        -> null
-    }
-
-private fun IconMode.toProto() =
-    when (this) {
-        IconMode.Original -> StoredIconMode.ICON_MODE_ORIGINAL
-        IconMode.Tinted -> StoredIconMode.ICON_MODE_TINTED
-        IconMode.Off -> StoredIconMode.ICON_MODE_OFF
-    }
-
-private fun StoredIconMode.toIconMode(): IconMode? =
-    when (this) {
-        StoredIconMode.ICON_MODE_ORIGINAL -> IconMode.Original
-        StoredIconMode.ICON_MODE_TINTED -> IconMode.Tinted
-        StoredIconMode.ICON_MODE_OFF -> IconMode.Off
-        StoredIconMode.ICON_MODE_UNSPECIFIED,
-        StoredIconMode.UNRECOGNIZED,
-        -> null
-    }
 
 private fun profileAvailabilityIntentFilter() =
     IntentFilter().apply {

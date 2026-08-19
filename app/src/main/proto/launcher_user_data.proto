@@ -9,6 +9,13 @@ message LauncherUserData {
   repeated StoredHiddenApp hidden_apps = 3;
 }
 
+// What the user carries off the device: the stored records, behind a version so that a file
+// written by a later Less is refused rather than half-understood.
+message ExportedConfiguration {
+  int32 format_version = 1;
+  LauncherUserData configuration = 2;
+}
+
 message StoredFavorite {
   string package_name = 1;
   string activity_name = 2;

@@ -57,6 +57,15 @@ The eight Favorites past which Home stops being a short list. It advises and
 never blocks: the ninth Favorite is pinned, the user is told, and Home scrolls.
 _Avoid_: limit, maximum, quota
 
+**Configuration**:
+Everything the user chose — Favorites with their order and custom labels, Hidden
+Apps, the settings and the Theme those settings name. Android's automatic backup
+carries it to a restored phone, and the user can additionally write it to a file
+of their own and read it back. What the device answers for itself stays with the
+device: how far Setup got, and whether Less has held the Home Role, are left out
+of the exported file and cleared again after a restore.
+_Avoid_: backup, profile, preset, user data, settings file
+
 ### Apps
 
 **Favorite**:

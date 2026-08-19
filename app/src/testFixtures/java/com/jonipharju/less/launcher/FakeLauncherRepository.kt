@@ -130,6 +130,12 @@ class FakeLauncherRepository : LauncherRepository {
     override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) {
         mutableSettings.value = update(mutableSettings.value)
     }
+
+    override suspend fun restoreConfiguration(configuration: LauncherConfiguration) {
+        mutableFavorites.value = configuration.favoritesInOrder()
+        mutableHiddenApps.value = configuration.hiddenApps
+        mutableSettings.value = configuration.settingsRestoredOnto(mutableSettings.value)
+    }
 }
 
 fun launcherAppFixture(label: String) =

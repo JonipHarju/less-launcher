@@ -5,12 +5,12 @@ background and own its appearance completely. It doesn't: the launcher window is
 transparent and the real system Wallpaper shows through, exactly as other
 launchers do. An opaque background would break live wallpapers, kill the
 system's wallpaper parallax on gestures, and leave Home looking unrelated to the
-lock screen and recents. Picking a Theme therefore *offers* to apply its
-wallpaper via `WallpaperManager` behind an explicit tap — a launcher should not
-silently mutate a system-wide setting.
+lock screen and recents. Picking a Theme applies that Theme's wallpaper through
+`WallpaperManager` so Home, the lock screen, and recents stay the same picture.
 
 ## Consequences
 
-A Theme's text colours can end up over a wallpaper it was never designed for, so
-every Theme carries a Scrim strong enough to guarantee legibility on its own,
-independent of what is behind it.
+Home wears a light Scrim and a text halo so the Wallpaper still reads while the
+clock stays legible over busy paintings. Drawer and Settings sit behind a
+stronger Scrim so their denser text stays readable regardless of what is behind
+them.

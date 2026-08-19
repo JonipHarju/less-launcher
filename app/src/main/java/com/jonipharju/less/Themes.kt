@@ -70,7 +70,7 @@ internal val ParasolTheme =
         // Monet's sky is the brightest field in the set; a high-key scrim keeps
         // the clock in the sky without asking the painting to provide contrast.
         scrim = Scrim(top = Color(0xFFF3F6FC).copy(alpha = 0.94f), bottom = Color(0xFFEEF2E8).copy(alpha = 0.90f)),
-        fontFamily = Fraunces,
+        fontFamily = Manrope,
         typeScale = SharedTypeScale,
         textColor = Color(0xFF1A2744),
         secondaryTextColor = Color(0xFF2F3F32),
@@ -95,7 +95,7 @@ internal val CoubronTheme =
         // The forest is already a dark, warm key. The scrim deepens it so cream
         // text does not depend on a sunlit patch of path happening to sit behind it.
         scrim = Scrim(top = Color(0xFF1C1810).copy(alpha = 0.94f), bottom = Color(0xFF282014).copy(alpha = 0.90f)),
-        fontFamily = EbGaramond,
+        fontFamily = Manrope,
         typeScale = SharedTypeScale,
         textColor = Color(0xFFF3E6C8),
         secondaryTextColor = Color(0xFFE0D0A8),
@@ -120,7 +120,7 @@ internal val RuinedChurchTheme =
         // Blechen's drawing lives on cream paper. The scrim is that paper, so
         // umber ink stays readable whether or not the user applied the wallpaper.
         scrim = Scrim(top = Color(0xFFE8DCC8).copy(alpha = 0.94f), bottom = Color(0xFFE4D4B8).copy(alpha = 0.90f)),
-        fontFamily = CormorantGaramond,
+        fontFamily = Manrope,
         typeScale = SharedTypeScale,
         textColor = Color(0xFF2A2218),
         secondaryTextColor = Color(0xFF4A3C2C),
@@ -145,7 +145,7 @@ internal val SpringhouseTheme =
         // Birch's wash is already a pale sheet. The scrim holds that key so the
         // graphite-dark text never lands on a dark system Wallpaper unprotected.
         scrim = Scrim(top = Color(0xFFE6E0D4).copy(alpha = 0.94f), bottom = Color(0xFFDED6C8).copy(alpha = 0.90f)),
-        fontFamily = Newsreader,
+        fontFamily = Manrope,
         typeScale = SharedTypeScale,
         textColor = Color(0xFF2C2A24),
         secondaryTextColor = Color(0xFF4A463C),

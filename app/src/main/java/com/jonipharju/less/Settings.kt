@@ -287,7 +287,10 @@ private fun ThemePicker(
                     .selectable(
                         selected = isChosen,
                         role = Role.RadioButton,
-                        onClick = { scope.launch { repository.updateSettings { it.copy(themeId = option.id) } } },
+                        onClick = {
+                            scope.launch { repository.updateSettings { it.copy(themeId = option.id) } }
+                            onApplyWallpaper(option)
+                        },
                     ).padding(horizontal = 24.dp, vertical = 14.dp),
         ) {
             BasicText(
@@ -316,15 +319,6 @@ private fun ThemePicker(
             )
         }
     }
-    BasicText(
-        text = stringResource(R.string.set_as_wallpaper),
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = { onApplyWallpaper(chosen) })
-                .padding(horizontal = 24.dp, vertical = 14.dp),
-        style = settingsTextStyle(size = 20.sp),
-    )
 }
 
 @Composable

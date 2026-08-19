@@ -64,6 +64,7 @@ private fun captureHome(theme: Theme) {
             wallpaper = SurfaceWallpaper.Fixed(ImageBitmap.imageResource(theme.wallpaperAsset)),
             modifier = Modifier.requiredSize(360.dp, 800.dp),
             theme = theme,
+            scrim = theme.scrim.forHome(),
         ) {
             Home(
                 repository = repository,

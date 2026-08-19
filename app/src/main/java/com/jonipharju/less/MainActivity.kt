@@ -1,5 +1,6 @@
 package com.jonipharju.less
 
+import android.app.Activity
 import android.app.WallpaperManager
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -12,15 +13,20 @@ import android.provider.AlarmClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.jonipharju.less.launcher.AndroidLauncherRepository
 import com.jonipharju.less.launcher.LauncherRepository
@@ -45,6 +51,7 @@ class MainActivity : ComponentActivity() {
     private val homeRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         launcherRepository = AndroidLauncherRepository(applicationContext)
         setContent {
@@ -109,6 +116,16 @@ internal fun LessLauncher(
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val context = LocalContext.current
     val settings by repository.settings.collectAsState()
+    val theme = themeById(settings.themeId)
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        val lightBars = theme.textColor.luminance() < 0.5f
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = lightBars
+            isAppearanceLightNavigationBars = lightBars
+        }
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -125,7 +142,11 @@ internal fun LessLauncher(
         surface = if (surface == LauncherSurface.Settings) LauncherSurface.Drawer else LauncherSurface.Home
     }
 
-    ThemedSurface(wallpaper = SurfaceWallpaper.System, theme = themeById(settings.themeId)) {
+    ThemedSurface(
+        wallpaper = SurfaceWallpaper.System,
+        theme = theme,
+        scrim = if (surface == LauncherSurface.Home) theme.scrim.forHome() else theme.scrim,
+    ) {
         when (surface) {
             LauncherSurface.Home ->
                 Home(

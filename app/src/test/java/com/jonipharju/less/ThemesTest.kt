@@ -92,6 +92,17 @@ class ThemesTest {
             }
         }
     }
+
+    @Test
+    fun homeScrimIsLighterThanTheDrawerSoTheWallpaperStillReads() {
+        Themes.forEach { theme ->
+            val home = theme.scrim.forHome()
+            assertTrue("${theme.name}: Home scrim should be lighter than the Drawer", home.top.alpha < theme.scrim.top.alpha)
+            assertTrue("${theme.name}: Home scrim should still cushion the text", home.top.alpha >= 0.25f)
+            assertTrue(home.bottom.alpha < theme.scrim.bottom.alpha)
+            assertTrue(home.bottom.alpha >= 0.2f)
+        }
+    }
 }
 
 private fun contrastRatio(

@@ -7,9 +7,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jonipharju.less.launcher.FakeLauncherRepository
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,7 +36,7 @@ class ThemePickerTest {
     }
 
     @Test
-    fun pickingAThemeStoresItAndLeavesTheSystemWallpaperAlone() {
+    fun pickingAThemeStoresItAndAppliesItsWallpaper() {
         val repository = FakeLauncherRepository()
         val applied = mutableListOf<Theme>()
         compose.setContent {
@@ -49,23 +47,8 @@ class ThemePickerTest {
 
         compose.runOnIdle {
             assertEquals("parasol", repository.settings.value.themeId)
-            assertTrue(applied.isEmpty())
+            assertEquals(listOf(ParasolTheme), applied)
         }
         compose.onNodeWithText("Claude Monet").assertIsSelected()
     }
-
-    @Test
-    fun setAsWallpaperAppliesTheActiveTheme() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            repository.updateSettings { it.copy(themeId = ParasolTheme.id) }
-            val applied = mutableListOf<Theme>()
-            compose.setContent {
-                Settings(repository, onClose = {}, onApplyWallpaper = { applied += it })
-            }
-
-            compose.onNodeWithText("Set as Wallpaper").performScrollTo().performClick()
-
-            compose.runOnIdle { assertEquals(listOf(ParasolTheme), applied) }
-        }
 }

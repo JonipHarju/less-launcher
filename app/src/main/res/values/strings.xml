@@ -19,7 +19,6 @@
     <string name="settings_favorites">Favorites</string>
     <string name="settings_favorites_empty">None yet. Long-press an app in the Drawer to pin one.</string>
     <string name="settings_themes">Themes</string>
-    <string name="set_as_wallpaper">Set as Wallpaper</string>
     <string name="favorite_pin">Pin to Home</string>
     <string name="favorite_unpin">Unpin from Home</string>
     <string name="favorite_rename">Rename</string>

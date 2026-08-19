@@ -71,13 +71,12 @@ _Avoid_: skin, style, palette, colour scheme
 
 **Wallpaper**:
 The Android system wallpaper, owned by the OS and shared with the lock screen
-and recents. Less draws over it and only replaces it when the user explicitly
-asks a Theme to.
+and recents. Less draws over it and replaces it when the user picks a Theme.
 _Avoid_: background, backdrop
 
 **Scrim**:
-The gradient a Theme lays between the Wallpaper and its text so the Theme's text
-colours stay legible over any Wallpaper the user happens to have.
+The gradient a Theme lays over the Wallpaper so text stays legible. Home wears a
+light one so the Wallpaper still reads; Drawer and Settings wear a stronger one.
 _Avoid_: overlay, dim, shade, tint
 
 **Icon Mode**:

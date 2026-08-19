@@ -4,6 +4,7 @@ import android.app.WallpaperManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.icu.text.DateFormat
 import android.net.Uri
 import android.os.Bundle
@@ -74,9 +75,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun applyThemeWallpaper(theme: Theme) {
+        val wallpaper = BitmapFactory.decodeResource(resources, theme.wallpaperAsset) ?: return
         try {
-            WallpaperManager.getInstance(applicationContext).setResource(
-                theme.wallpaperAsset,
+            WallpaperManager.getInstance(applicationContext).setBitmap(
+                wallpaper,
+                null,
+                true,
                 WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK,
             )
         } catch (_: IOException) {

@@ -11,9 +11,11 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -51,5 +53,25 @@ internal fun TopBar(content: @Composable RowScope.() -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
         content = content,
+    )
+}
+
+/** The Theme's own type, at whatever size the surface asks for. */
+@Composable
+internal fun themedTextStyle(
+    color: Color = LocalTheme.current.textColor,
+    size: TextUnit,
+): TextStyle {
+    val theme = LocalTheme.current
+    return TextStyle(color = color, fontFamily = theme.fontFamily, fontSize = size)
+}
+
+/** The heading over one group of options. */
+@Composable
+internal fun GroupTitle(title: String) {
+    BasicText(
+        text = title,
+        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
+        style = themedTextStyle(color = LocalTheme.current.secondaryTextColor, size = 14.sp),
     )
 }

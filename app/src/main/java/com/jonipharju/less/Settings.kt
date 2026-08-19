@@ -21,12 +21,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jonipharju.less.launcher.DrawerOpenDirection
@@ -63,7 +60,7 @@ internal fun Settings(
             BasicText(
                 text = stringResource(R.string.settings),
                 modifier = Modifier.padding(horizontal = 12.dp),
-                style = settingsTextStyle(size = 28.sp),
+                style = themedTextStyle(size = 28.sp),
             )
             GlyphControl(
                 glyph = "✕",
@@ -72,6 +69,7 @@ internal fun Settings(
             )
         }
 
+        GroupTitle(stringResource(R.string.settings_themes))
         ThemePicker(repository = repository, onApplyWallpaper = onApplyWallpaper)
 
         ChoiceGroup(
@@ -126,7 +124,7 @@ private fun FavoritesEditor(repository: LauncherRepository) {
         BasicText(
             text = stringResource(R.string.settings_favorites_empty),
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
-            style = settingsTextStyle(color = LocalTheme.current.secondaryTextColor, size = 16.sp),
+            style = themedTextStyle(color = LocalTheme.current.secondaryTextColor, size = 16.sp),
         )
         return
     }
@@ -135,7 +133,7 @@ private fun FavoritesEditor(repository: LauncherRepository) {
         BasicText(
             text = stringResource(R.string.favorites_soft_cap, FavoritesSoftCap),
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-            style = settingsTextStyle(color = LocalTheme.current.secondaryTextColor, size = 16.sp),
+            style = themedTextStyle(color = LocalTheme.current.secondaryTextColor, size = 16.sp),
         )
     }
 
@@ -185,7 +183,7 @@ private fun HiddenApps(repository: LauncherRepository) {
         BasicText(
             text = stringResource(R.string.settings_hidden_apps_empty),
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
-            style = settingsTextStyle(color = LocalTheme.current.secondaryTextColor, size = 16.sp),
+            style = themedTextStyle(color = LocalTheme.current.secondaryTextColor, size = 16.sp),
         )
         return
     }
@@ -212,7 +210,7 @@ private fun HiddenAppRow(
         BasicText(
             text = app.label,
             modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            style = settingsTextStyle(size = 20.sp),
+            style = themedTextStyle(size = 20.sp),
         )
         GlyphControl(
             glyph = "↩",
@@ -243,7 +241,7 @@ private fun FavoriteEditorRow(
         BasicText(
             text = label,
             modifier = Modifier.weight(1f).clickable(onClick = onRename).padding(vertical = 10.dp),
-            style = settingsTextStyle(size = 20.sp),
+            style = themedTextStyle(size = 20.sp),
         )
         if (canMoveUp) {
             GlyphControl(
@@ -287,21 +285,12 @@ private fun <T> ChoiceGroup(
                     .selectable(selected = isChosen, onClick = { onChoose(option) })
                     .padding(horizontal = 24.dp, vertical = 14.dp),
             style =
-                settingsTextStyle(
+                themedTextStyle(
                     color = if (isChosen) LocalTheme.current.textColor else LocalTheme.current.secondaryTextColor,
                     size = 20.sp,
                 ),
         )
     }
-}
-
-@Composable
-private fun GroupTitle(title: String) {
-    BasicText(
-        text = title,
-        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
-        style = settingsTextStyle(color = LocalTheme.current.secondaryTextColor, size = 14.sp),
-    )
 }
 
 /** One setting that is simply on or off, its state spelled out beside its label. */
@@ -322,18 +311,18 @@ private fun OnOff(
     ) {
         BasicText(
             text = label,
-            style = settingsTextStyle(size = 20.sp),
+            style = themedTextStyle(size = 20.sp),
         )
         BasicText(
             text = stringResource(if (on) R.string.settings_on else R.string.settings_off),
-            style = settingsTextStyle(color = LocalTheme.current.secondaryTextColor, size = 20.sp),
+            style = themedTextStyle(color = LocalTheme.current.secondaryTextColor, size = 20.sp),
         )
     }
 }
 
 /** The Credit is the picker: artist, title, year, collection, source — not a swatch. */
 @Composable
-private fun ThemePicker(
+internal fun ThemePicker(
     repository: LauncherRepository,
     onApplyWallpaper: (Theme) -> Unit,
 ) {
@@ -342,7 +331,6 @@ private fun ThemePicker(
     val chosen = themeById(settings.themeId)
     val colors = LocalTheme.current
 
-    GroupTitle(stringResource(R.string.settings_themes))
     Themes.forEach { option ->
         val isChosen = option.id == chosen.id
         Column(
@@ -363,7 +351,7 @@ private fun ThemePicker(
             BasicText(
                 text = option.credit.artist,
                 style =
-                    settingsTextStyle(
+                    themedTextStyle(
                         color = if (isChosen) colors.textColor else colors.secondaryTextColor,
                         size = 20.sp,
                     ),
@@ -371,30 +359,21 @@ private fun ThemePicker(
             BasicText(
                 text = option.credit.title,
                 style =
-                    settingsTextStyle(
+                    themedTextStyle(
                         color = if (isChosen) colors.textColor else colors.secondaryTextColor,
                         size = 16.sp,
                     ),
             )
             BasicText(
                 text = "${option.credit.year}  ·  ${option.credit.collection}",
-                style = settingsTextStyle(color = colors.secondaryTextColor, size = 14.sp),
+                style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
             )
             BasicText(
                 text = option.credit.source,
-                style = settingsTextStyle(color = colors.secondaryTextColor, size = 14.sp),
+                style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
             )
         }
     }
-}
-
-@Composable
-private fun settingsTextStyle(
-    color: Color = LocalTheme.current.textColor,
-    size: TextUnit,
-): TextStyle {
-    val theme = LocalTheme.current
-    return TextStyle(color = color, fontFamily = theme.fontFamily, fontSize = size)
 }
 
 private fun DrawerOpenDirection.labelResource() =

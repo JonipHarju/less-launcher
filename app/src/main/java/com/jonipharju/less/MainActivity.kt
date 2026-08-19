@@ -30,6 +30,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.jonipharju.less.launcher.AndroidLauncherRepository
 import com.jonipharju.less.launcher.LauncherRepository
+import com.jonipharju.less.launcher.isRunning
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -76,6 +77,15 @@ class MainActivity : ComponentActivity() {
         homeRequests.tryEmit(Unit)
     }
 
+    /**
+     * The OS announces nothing when the home role changes hands, and it only ever changes while
+     * the user is away in the role dialog or in Settings — so coming back is when Less asks.
+     */
+    override fun onResume() {
+        super.onResume()
+        launcherRepository.refreshHomeRole()
+    }
+
     override fun onDestroy() {
         launcherRepository.close()
         super.onDestroy()
@@ -116,6 +126,7 @@ internal fun LessLauncher(
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val context = LocalContext.current
     val settings by repository.settings.collectAsState()
+    val inSetup = settings.setupStep.isRunning()
     val theme = themeById(settings.themeId)
     val view = LocalView.current
     SideEffect {
@@ -138,37 +149,42 @@ internal fun LessLauncher(
         homeRequests.collect { surface = LauncherSurface.Home }
     }
 
-    BackHandler(enabled = surface != LauncherSurface.Home) {
+    BackHandler(enabled = !inSetup && surface != LauncherSurface.Home) {
         surface = if (surface == LauncherSurface.Settings) LauncherSurface.Drawer else LauncherSurface.Home
     }
 
     ThemedSurface(
         wallpaper = SurfaceWallpaper.System,
         theme = theme,
-        scrim = if (surface == LauncherSurface.Home) theme.scrim.forHome() else theme.scrim,
+        // Setup wears the full Scrim: it is a surface to read, not a Wallpaper to admire.
+        scrim = if (surface == LauncherSurface.Home && !inSetup) theme.scrim.forHome() else theme.scrim,
     ) {
-        when (surface) {
-            LauncherSurface.Home ->
-                Home(
-                    repository = repository,
-                    timeText = formattedTime(context, now),
-                    dateText = formattedDate(now),
-                    onOpenClock = onOpenClock,
-                    onOpenCalendar = { onOpenCalendar(now) },
-                    onOpenDrawer = { surface = LauncherSurface.Drawer },
-                )
-            LauncherSurface.Drawer ->
-                Drawer(
-                    repository = repository,
-                    onClose = { surface = LauncherSurface.Home },
-                    onOpenSettings = { surface = LauncherSurface.Settings },
-                )
-            LauncherSurface.Settings ->
-                Settings(
-                    repository = repository,
-                    onClose = { surface = LauncherSurface.Drawer },
-                    onApplyWallpaper = onApplyWallpaper,
-                )
+        if (inSetup) {
+            Setup(repository = repository, onApplyWallpaper = onApplyWallpaper)
+        } else {
+            when (surface) {
+                LauncherSurface.Home ->
+                    Home(
+                        repository = repository,
+                        timeText = formattedTime(context, now),
+                        dateText = formattedDate(now),
+                        onOpenClock = onOpenClock,
+                        onOpenCalendar = { onOpenCalendar(now) },
+                        onOpenDrawer = { surface = LauncherSurface.Drawer },
+                    )
+                LauncherSurface.Drawer ->
+                    Drawer(
+                        repository = repository,
+                        onClose = { surface = LauncherSurface.Home },
+                        onOpenSettings = { surface = LauncherSurface.Settings },
+                    )
+                LauncherSurface.Settings ->
+                    Settings(
+                        repository = repository,
+                        onClose = { surface = LauncherSurface.Drawer },
+                        onApplyWallpaper = onApplyWallpaper,
+                    )
+            }
         }
     }
 }

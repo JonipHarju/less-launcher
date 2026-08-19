@@ -8,17 +8,46 @@ class FakeLauncherRepository : LauncherRepository {
     private val mutableFavorites = MutableStateFlow<List<Favorite>>(emptyList())
     private val mutableHiddenApps = MutableStateFlow<Set<LauncherAppId>>(emptySet())
     private val mutableSettings = MutableStateFlow(LauncherSettings())
+    private val mutableHoldsHomeRole = MutableStateFlow(false)
     private val mutableLaunchedApps = mutableListOf<LauncherApp>()
     private val mutableAppInfoShownFor = mutableListOf<LauncherAppId>()
     private val mutableUninstallsRequestedFor = mutableListOf<LauncherAppId>()
+    private val everydayApps = mutableMapOf<EverydayIntent, LauncherAppId>()
+    private var mutableHomeRoleRequests = 0
 
     override val installedApps = mutableInstalledApps.asStateFlow()
     override val favorites = mutableFavorites.asStateFlow()
     override val hiddenApps = mutableHiddenApps.asStateFlow()
     override val settings = mutableSettings.asStateFlow()
+    override val holdsHomeRole = mutableHoldsHomeRole.asStateFlow()
     val launchedApps: List<LauncherApp> = mutableLaunchedApps
     val appInfoShownFor: List<LauncherAppId> = mutableAppInfoShownFor
     val uninstallsRequestedFor: List<LauncherAppId> = mutableUninstallsRequestedFor
+    val homeRoleRequests: Int get() = mutableHomeRoleRequests
+
+    /** The platform has made Less the default launcher, which Less records as the real one does. */
+    fun holdHomeRole() {
+        mutableHoldsHomeRole.value = true
+        mutableSettings.value = mutableSettings.value.copy(hasHeldHomeRole = true)
+    }
+
+    /** The user has handed the Home Role to another launcher. */
+    fun releaseHomeRole() {
+        mutableHoldsHomeRole.value = false
+    }
+
+    /** The user has been through Setup, which is where every surface but Setup begins. */
+    fun finishSetup() {
+        mutableSettings.value = mutableSettings.value.copy(setupStep = SetupStep.Done)
+    }
+
+    /** The device answers [intent] with [appId]. */
+    fun answer(
+        intent: EverydayIntent,
+        appId: LauncherAppId,
+    ) {
+        everydayApps[intent] = appId
+    }
 
     fun install(app: LauncherApp) {
         mutableInstalledApps.value = (mutableInstalledApps.value + app).alphabetized()
@@ -57,6 +86,12 @@ class FakeLauncherRepository : LauncherRepository {
     override fun requestUninstall(appId: LauncherAppId) {
         mutableUninstallsRequestedFor += appId
     }
+
+    override fun requestHomeRole() {
+        mutableHomeRoleRequests++
+    }
+
+    override fun appAnswering(intent: EverydayIntent): LauncherAppId? = everydayApps[intent]
 
     override suspend fun chooseFavorite(favorite: Favorite) {
         mutableFavorites.value =

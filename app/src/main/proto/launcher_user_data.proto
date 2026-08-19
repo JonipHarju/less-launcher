@@ -29,6 +29,8 @@ message LauncherSettings {
   HomeAlignment home_alignment = 3;
   optional bool opens_keyboard_with_drawer = 4;
   optional string theme_id = 5;
+  SetupStep setup_step = 6;
+  optional bool has_held_home_role = 7;
 }
 
 enum IconMode {
@@ -42,6 +44,14 @@ enum DrawerOpenDirection {
   DRAWER_OPEN_DIRECTION_UNSPECIFIED = 0;
   DRAWER_OPEN_DIRECTION_SWIPE_UP = 1;
   DRAWER_OPEN_DIRECTION_SWIPE_DOWN = 2;
+}
+
+enum SetupStep {
+  SETUP_STEP_UNSPECIFIED = 0;
+  SETUP_STEP_THEME = 1;
+  SETUP_STEP_DEFAULT_LAUNCHER = 2;
+  SETUP_STEP_FAVORITES = 3;
+  SETUP_STEP_DONE = 4;
 }
 
 enum HomeAlignment {

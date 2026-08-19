@@ -6,6 +6,7 @@ else is one swipe away.
 Swipe up for every app and a search field. Pick one of six themes built from
 public-domain museum art. Nothing else.
 
+- [`docs/INSTALL.md`](./docs/INSTALL.md) — building it and putting it on a phone
 - [`CONTEXT.md`](./CONTEXT.md) — the project's vocabulary
 - [`docs/adr/`](./docs/adr/) — the decisions and why they went that way
 

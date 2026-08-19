@@ -14,6 +14,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.jonipharju.less.launcher.AppIcon
 import com.jonipharju.less.launcher.FakeLauncherRepository
 import com.jonipharju.less.launcher.Favorite
+import com.jonipharju.less.launcher.HomeAlignment
 import com.jonipharju.less.launcher.IconMode
 import com.jonipharju.less.launcher.launcherAppFixture
 import kotlinx.coroutines.runBlocking
@@ -27,13 +28,25 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [35], qualifiers = "w360dp-h800dp-xxhdpi")
 class ThemeScreenshotTest {
     @Test
-    fun homeWithIconsOff() = captureHome(CoubronTheme, IconMode.Hidden)
+    fun homeWithIconsOff() = captureHome(CoubronTheme, IconMode.Off)
 
     @Test
     fun homeWithTintedIcons() = captureHome(CoubronTheme, IconMode.Tinted)
 
     @Test
-    fun homeWithNativeIcons() = captureHome(CoubronTheme, IconMode.Original)
+    fun homeWithOriginalIcons() = captureHome(CoubronTheme, IconMode.Original)
+
+    @Test
+    fun homeWithCentredTintedIcons() = captureHome(CoubronTheme, IconMode.Tinted, HomeAlignment.Centred)
+
+    @Test
+    fun drawerWithIconsOff() = captureDrawer(CoubronTheme, IconMode.Off)
+
+    @Test
+    fun drawerWithTintedIcons() = captureDrawer(CoubronTheme, IconMode.Tinted)
+
+    @Test
+    fun drawerWithOriginalIcons() = captureDrawer(CoubronTheme, IconMode.Original)
 
     @Test
     fun homeUnderNearBlackTheme() = captureHome(NearBlackTheme)
@@ -75,9 +88,14 @@ class ThemeScreenshotTest {
 private fun captureHome(
     theme: Theme,
     iconModeOverride: IconMode? = null,
+    homeAlignment: HomeAlignment = HomeAlignment.Left,
 ) {
     val repository = repositoryWithApps()
-    runBlocking { repository.updateSettings { it.copy(iconModeOverride = iconModeOverride) } }
+    runBlocking {
+        repository.updateSettings {
+            it.copy(iconModeOverride = iconModeOverride, homeAlignment = homeAlignment)
+        }
+    }
     captureRoboImage {
         ThemedSurface(
             wallpaper = SurfaceWallpaper.Fixed(ImageBitmap.imageResource(theme.wallpaperAsset)),
@@ -97,8 +115,12 @@ private fun captureHome(
     }
 }
 
-private fun captureDrawer(theme: Theme) {
+private fun captureDrawer(
+    theme: Theme,
+    iconModeOverride: IconMode? = null,
+) {
     val repository = repositoryWithApps()
+    runBlocking { repository.updateSettings { it.copy(iconModeOverride = iconModeOverride) } }
     captureRoboImage {
         ThemedSurface(
             wallpaper = SurfaceWallpaper.Fixed(ImageBitmap.imageResource(theme.wallpaperAsset)),
@@ -122,13 +144,15 @@ private fun repositoryWithApps() =
     }
 
 private fun screenshotIcon(index: Int): AppIcon {
-    val native = ImageBitmap(48, 48)
-    Canvas(native).drawCircle(
+    val original = ImageBitmap(48, 48)
+    Canvas(original).drawCircle(
         center = Offset(24f, 24f),
         radius = 22f,
         paint = Paint().apply { color = listOf(Color.Red, Color.Green, Color.Blue, Color.Yellow)[index] },
     )
+    // Same radius as the original: the repository puts a Themeable Layer back inside an adaptive
+    // icon, so both layers reach the launcher at the same geometry.
     val themeable = ImageBitmap(48, 48)
-    Canvas(themeable).drawCircle(center = Offset(24f, 24f), radius = 18f, paint = Paint().apply { color = Color.Black })
-    return AppIcon(native = native, themeable = themeable.takeIf { index % 2 == 0 })
+    Canvas(themeable).drawCircle(center = Offset(24f, 24f), radius = 22f, paint = Paint().apply { color = Color.Black })
+    return AppIcon(original = original, themeable = themeable.takeIf { index % 2 == 0 })
 }

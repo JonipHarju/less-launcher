@@ -85,6 +85,18 @@ theme colour, or not at all. Declared per Theme; the user can override it
 globally.
 _Avoid_: icon style, icon pack, icon theme
 
+**Themeable Layer**:
+The monochrome layer an app may supply alongside its icon, meant to be recoloured
+by the launcher. Not every app ships one. Tinted Icon Mode uses it where it
+exists and falls back to the Desaturated Tint where it doesn't.
+_Avoid_: mono icon, monochrome icon, themed icon
+
+**Desaturated Tint**:
+What Tinted Icon Mode does to an app that supplies no Themeable Layer: strip the
+colour from its own artwork and scale what is left by the Theme colour, so the
+icon keeps its light and dark detail. Never a derived silhouette — see ADR-0005.
+_Avoid_: greyscale, silhouette, fallback icon
+
 **Drawer Treatment**:
 How a Theme renders the Drawer's background against the Wallpaper — blurred,
 flat translucent, or opaque.

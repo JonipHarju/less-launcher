@@ -28,7 +28,7 @@ enum IconMode {
   ICON_MODE_UNSPECIFIED = 0;
   ICON_MODE_ORIGINAL = 1;
   ICON_MODE_TINTED = 2;
-  ICON_MODE_HIDDEN = 3;
+  ICON_MODE_OFF = 3;
 }
 
 enum DrawerOpenDirection {

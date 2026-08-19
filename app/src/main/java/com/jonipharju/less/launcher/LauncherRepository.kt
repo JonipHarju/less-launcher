@@ -3,9 +3,9 @@ package com.jonipharju.less.launcher
 import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.flow.StateFlow
 
-/** Native artwork and, when supplied by the app, its themeable monochrome layer. */
+/** Original artwork and, when supplied by the app, its themeable monochrome layer. */
 data class AppIcon(
-    val native: ImageBitmap,
+    val original: ImageBitmap,
     val themeable: ImageBitmap?,
 )
 
@@ -43,7 +43,7 @@ data class LauncherSettings(
 enum class IconMode {
     Original,
     Tinted,
-    Hidden,
+    Off,
 }
 
 /** The swipe on Home that opens the Drawer. The inverse swipe closes it again. */

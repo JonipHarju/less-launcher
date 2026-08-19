@@ -99,7 +99,7 @@ internal fun Settings(
 
         ChoiceGroup(
             title = stringResource(R.string.settings_icon_mode),
-            options = listOf(null, IconMode.Hidden, IconMode.Tinted, IconMode.Original),
+            options = listOf(null, IconMode.Off, IconMode.Tinted, IconMode.Original),
             chosen = settings.iconModeOverride,
             label = { mode -> stringResource(mode.labelResource()) },
             onChoose = { mode -> store { it.copy(iconModeOverride = mode) } },
@@ -354,7 +354,7 @@ private fun HomeAlignment.labelResource() =
 private fun IconMode?.labelResource() =
     when (this) {
         null -> R.string.settings_icon_mode_theme
-        IconMode.Hidden -> R.string.settings_icon_mode_off
+        IconMode.Off -> R.string.settings_icon_mode_off
         IconMode.Tinted -> R.string.settings_icon_mode_tinted
-        IconMode.Original -> R.string.settings_icon_mode_native
+        IconMode.Original -> R.string.settings_icon_mode_original
     }

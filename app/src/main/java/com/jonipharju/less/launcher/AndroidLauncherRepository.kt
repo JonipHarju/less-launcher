@@ -249,9 +249,16 @@ class AndroidLauncherRepository(
 }
 
 private fun Drawable.toAppIcon(): AppIcon {
-    val themed = (this as? AdaptiveIconDrawable)?.monochrome
-    return AppIcon(native = rendered(), themeable = themed?.rendered())
+    val monochrome = (this as? AdaptiveIconDrawable)?.monochrome
+    return AppIcon(original = rendered(), themeable = monochrome?.asAdaptiveIcon()?.rendered())
 }
+
+/**
+ * A monochrome layer drawn on its own keeps the adaptive icon's safe-zone margin, so its glyph
+ * covers barely a third of the bitmap — beside a full-bleed original it reads as a second, smaller
+ * icon size. Putting it back inside an [AdaptiveIconDrawable] gives it the original's geometry.
+ */
+private fun Drawable.asAdaptiveIcon(): AdaptiveIconDrawable = AdaptiveIconDrawable(null, constantState?.newDrawable()?.mutate() ?: this)
 
 private fun Drawable.rendered() =
     Bitmap
@@ -345,14 +352,14 @@ private fun IconMode.toProto() =
     when (this) {
         IconMode.Original -> StoredIconMode.ICON_MODE_ORIGINAL
         IconMode.Tinted -> StoredIconMode.ICON_MODE_TINTED
-        IconMode.Hidden -> StoredIconMode.ICON_MODE_HIDDEN
+        IconMode.Off -> StoredIconMode.ICON_MODE_OFF
     }
 
 private fun StoredIconMode.toIconMode(): IconMode? =
     when (this) {
         StoredIconMode.ICON_MODE_ORIGINAL -> IconMode.Original
         StoredIconMode.ICON_MODE_TINTED -> IconMode.Tinted
-        StoredIconMode.ICON_MODE_HIDDEN -> IconMode.Hidden
+        StoredIconMode.ICON_MODE_OFF -> IconMode.Off
         StoredIconMode.ICON_MODE_UNSPECIFIED,
         StoredIconMode.UNRECOGNIZED,
         -> null

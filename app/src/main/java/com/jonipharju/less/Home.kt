@@ -1,15 +1,14 @@
 package com.jonipharju.less
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -95,6 +94,7 @@ internal fun Home(
             horizontalAlignment = settings.homeAlignment.asHorizontalAlignment(),
         ) {
             val textAlign = settings.homeAlignment.asTextAlign()
+            val rowArrangement = settings.homeAlignment.asRowArrangement()
             BasicText(
                 text = timeText,
                 modifier = Modifier.clickable(onClick = onOpenClock),
@@ -133,6 +133,7 @@ internal fun Home(
                         FavoriteRow(
                             shownFavorite = shownFavorite,
                             textAlign = textAlign,
+                            rowArrangement = rowArrangement,
                             iconMode = iconMode,
                             onLaunch = { repository.launch(shownFavorite.app) },
                             onCurate = { curated = shownFavorite.favorite.appId },
@@ -237,6 +238,7 @@ private fun TombstoneRow(
 private fun FavoriteRow(
     shownFavorite: ShownFavorite,
     textAlign: TextAlign,
+    rowArrangement: Arrangement.Horizontal,
     iconMode: IconMode,
     onLaunch: () -> Unit,
     onCurate: () -> Unit,
@@ -273,13 +275,14 @@ private fun FavoriteRow(
                         onDragEnd()
                     },
                 ),
+        horizontalArrangement = rowArrangement,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LauncherAppIcon(shownFavorite.app?.icon, iconMode, shownFavorite.label)
-        if (iconMode != IconMode.Hidden && shownFavorite.app?.icon != null) Spacer(Modifier.width(12.dp))
+        LauncherAppIcon(shownFavorite.app?.icon, iconMode)
         BasicText(
             text = shownFavorite.label,
-            modifier = Modifier.weight(1f),
+            // Shrinkable but not filling, so the arrangement can centre icon and label together.
+            modifier = Modifier.weight(1f, fill = false),
             style = themedAppTextStyle(color = LocalTheme.current.textColor, textAlign = textAlign),
         )
     }
@@ -328,6 +331,13 @@ private fun HomeAlignment.asHorizontalAlignment() =
     when (this) {
         HomeAlignment.Left -> Alignment.Start
         HomeAlignment.Centred -> Alignment.CenterHorizontally
+    }
+
+/** Centred Home centres a Favorite's icon and label as one group, not the label on its own. */
+private fun HomeAlignment.asRowArrangement(): Arrangement.Horizontal =
+    when (this) {
+        HomeAlignment.Left -> Arrangement.spacedBy(LauncherIconGap, Alignment.Start)
+        HomeAlignment.Centred -> Arrangement.spacedBy(LauncherIconGap, Alignment.CenterHorizontally)
     }
 
 private fun HomeAlignment.asTextAlign() =

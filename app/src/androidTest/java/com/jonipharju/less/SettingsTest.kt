@@ -27,6 +27,9 @@ import org.junit.Rule
 import org.junit.Test
 
 class SettingsTest {
+    @get:Rule
+    val compose = createComposeRule()
+
     @Test
     fun choosingAnIconModeStoresTheGlobalOverride() {
         val repository = FakeLauncherRepository()
@@ -36,9 +39,6 @@ class SettingsTest {
 
         compose.runOnIdle { assertEquals(IconMode.Tinted, repository.settings.value.iconModeOverride) }
     }
-
-    @get:Rule
-    val compose = createComposeRule()
 
     @Test
     fun showsTheStoredChoicesAsSelected() {

@@ -1,15 +1,14 @@
 package com.jonipharju.less
 
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicText
@@ -24,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -108,13 +108,13 @@ internal fun Drawer(
                             .combinedClickable(
                                 onClick = { repository.launch(app) },
                                 onLongClick = { curated = app },
+                                // Split 10 + 6 so the 32dp icon sets the row height, while a row
+                                // with icons off keeps the 16dp the label had on its own.
                             ).padding(horizontal = 24.dp, vertical = 10.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(LauncherIconGap),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    LauncherAppIcon(app.icon, iconMode, app.label)
-                    if (iconMode != com.jonipharju.less.launcher.IconMode.Hidden && app.icon != null) {
-                        Spacer(Modifier.width(12.dp))
-                    }
+                    LauncherAppIcon(app.icon, iconMode)
                     BasicText(
                         text = app.label,
                         modifier = Modifier.padding(vertical = 6.dp),

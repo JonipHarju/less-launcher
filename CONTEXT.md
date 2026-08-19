@@ -17,6 +17,13 @@ The full list of installed apps, opened from Home and dismissed back to it.
 Carries the search field and the entry point to Settings.
 _Avoid_: app list, menu, all-apps, app tray
 
+**Setup**:
+The three screens a new user meets before Home, in order: the Theme picker, the
+request to become the default launcher, and the Favorites picker. It runs once.
+The Theme comes first deliberately — Less shows what it is before it asks the
+user for anything.
+_Avoid_: onboarding, welcome screen, wizard, first-run flow
+
 **Settings**:
 The one screen holding every option, reached from the gear in the Drawer's top
 bar and dismissed back to it. There is exactly one; options are never scattered
@@ -30,6 +37,15 @@ The swipe on Home that opens the Drawer — up or down — and, inverted, the sw
 that closes it. Stored, not hard-coded, so it can change without restructuring
 the surfaces.
 _Avoid_: swipe gesture, open gesture
+
+**Home Role**:
+The platform's own name for being the default launcher: what Android hands to
+the app that opens when the user presses home. Less asks for it with the
+platform role request, and with the home-app settings screen on a device that
+does not honour one. Until Less holds it the Drawer carries a standing prompt;
+once Less has held it the prompt is gone for good, because handing the role to
+another launcher is a choice and not a mistake to correct.
+_Avoid_: launcher permission, home permission, default-app setting
 
 **Home Alignment**:
 Whether Home lays its clock, date, and Favorites out from the left edge or
@@ -47,6 +63,13 @@ _Avoid_: limit, maximum, quota
 An app the user has placed on Home, with its own position and optional custom
 label. Favorites are chosen deliberately; nothing promotes an app to one.
 _Avoid_: pinned app, shortcut, dock item
+
+**Everyday Intent**:
+One of the plain things a phone does — dialling, messaging, taking a photo,
+opening a web page — named as an intent so that the platform, not Less, decides
+which app answers it. Setup proposes the answers as the first Favorites, so a
+fresh Home works on any device without Less naming a single package.
+_Avoid_: default app, stock app, system app
 
 **Hidden App**:
 An installed app the user has excluded from the Drawer. It remains installed and

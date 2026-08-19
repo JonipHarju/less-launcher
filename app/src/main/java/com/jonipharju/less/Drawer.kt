@@ -39,6 +39,7 @@ import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.VerticalSwipe
+import com.jonipharju.less.launcher.asksForHomeRole
 import com.jonipharju.less.launcher.closesDrawer
 import com.jonipharju.less.launcher.customLabels
 import com.jonipharju.less.launcher.exceedSoftCap
@@ -56,6 +57,7 @@ internal fun Drawer(
     onOpenSettings: () -> Unit,
 ) {
     val settings by repository.settings.collectAsState()
+    val holdsHomeRole by repository.holdsHomeRole.collectAsState()
     val installedApps by repository.installedApps.collectAsState()
     val favorites by repository.favorites.collectAsState()
     val hiddenApps by repository.hiddenApps.collectAsState()
@@ -88,6 +90,9 @@ internal fun Drawer(
     // to land: over the list it only survives as overscroll the list had no room to use.
     Column(modifier = Modifier.fillMaxSize().onVerticalSwipe(closeOnSwipe)) {
         DrawerTopBar(onClose = onClose, onOpenSettings = onOpenSettings)
+        if (settings.asksForHomeRole(holdsHomeRole)) {
+            HomeRolePrompt(onRequest = repository::requestHomeRole)
+        }
         SearchField(
             query = query,
             onQueryChange = { query = it },
@@ -166,6 +171,19 @@ internal fun Drawer(
             onDismiss = { crowdedHome = false },
         )
     }
+}
+
+/**
+ * The standing offer to become the default launcher, in the Drawer rather than over it: it is
+ * read at leisure and never in the way. Once Less has held the Home Role it is gone for good.
+ */
+@Composable
+private fun HomeRolePrompt(onRequest: () -> Unit) {
+    TextControl(
+        label = stringResource(R.string.drawer_home_role_prompt),
+        onClick = onRequest,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable

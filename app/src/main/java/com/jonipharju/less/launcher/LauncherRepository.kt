@@ -38,6 +38,8 @@ data class LauncherSettings(
     val homeAlignment: HomeAlignment = HomeAlignment.Left,
     val opensKeyboardWithDrawer: Boolean = true,
     val themeId: String = DefaultThemeId,
+    val setupStep: SetupStep = SetupStep.Theme,
+    val hasHeldHomeRole: Boolean = false,
 )
 
 enum class IconMode {
@@ -67,6 +69,16 @@ interface LauncherRepository {
     val hiddenApps: StateFlow<Set<LauncherAppId>>
     val settings: StateFlow<LauncherSettings>
 
+    /**
+     * Whether what the user stored has been read yet. Until it has, [settings] is standing in
+     * with its own defaults — and one of those is that Setup has never run, so no surface may
+     * act on them before this turns true.
+     */
+    val hasReadStoredSettings: StateFlow<Boolean>
+
+    /** Whether Less is the default launcher — whether the platform has given it the Home Role. */
+    val holdsHomeRole: StateFlow<Boolean>
+
     fun launch(app: LauncherApp)
 
     /** Opens the system's own page for [appId], where the OS explains and controls the app. */
@@ -74,6 +86,19 @@ interface LauncherRepository {
 
     /** Asks the system to uninstall [appId]. The OS, not Less, confirms it with the user. */
     fun requestUninstall(appId: LauncherAppId)
+
+    /**
+     * Asks the platform to hand Less the Home Role. The OS owns the answer; Less only learns it
+     * by asking again whether it holds the role.
+     */
+    fun requestHomeRole()
+
+    /**
+     * The installed app the platform answers [intent] with, or null where the device has none.
+     * Resolved by what the user wants done rather than by package name, so Setup proposes
+     * Favorites that exist on the device in front of it.
+     */
+    fun appAnswering(intent: EverydayIntent): LauncherAppId?
 
     suspend fun chooseFavorite(favorite: Favorite)
 

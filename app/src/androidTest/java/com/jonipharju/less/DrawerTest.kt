@@ -33,6 +33,7 @@ class DrawerTest {
     @Test
     fun installedAppsAppearOnlyAfterOpeningDrawer() {
         val repository = FakeLauncherRepository()
+        repository.finishSetup()
         repository.install(launcherAppFixture(label = "Clock"))
         compose.setContent { LessLauncher(repository) }
 
@@ -44,6 +45,7 @@ class DrawerTest {
     @Test
     fun backDismissesDrawerToHome() {
         val repository = FakeLauncherRepository()
+        repository.finishSetup()
         repository.install(launcherAppFixture(label = "Clock"))
         lateinit var backDispatcher: OnBackPressedDispatcher
         compose.setContent {
@@ -137,6 +139,7 @@ class DrawerTest {
     @Test
     fun reopeningDrawerClearsQuery() {
         val repository = FakeLauncherRepository()
+        repository.finishSetup()
         repository.install(launcherAppFixture(label = "Camera"))
         repository.install(launcherAppFixture(label = "Clock"))
         lateinit var backDispatcher: OnBackPressedDispatcher
@@ -159,6 +162,7 @@ class DrawerTest {
     @Test
     fun closeControlDismissesDrawerToHome() {
         val repository = FakeLauncherRepository()
+        repository.finishSetup()
         repository.install(launcherAppFixture(label = "Clock"))
         compose.setContent { LessLauncher(repository) }
         compose.onRoot().performTouchInput { swipeUp() }
@@ -171,6 +175,7 @@ class DrawerTest {
     @Test
     fun inverseSwipeDismissesDrawerToHome() {
         val repository = FakeLauncherRepository()
+        repository.finishSetup()
         repository.install(launcherAppFixture(label = "Clock"))
         compose.setContent { LessLauncher(repository) }
         compose.onRoot().performTouchInput { swipeUp() }
@@ -185,6 +190,7 @@ class DrawerTest {
     fun theStoredDirectionDecidesWhichSwipeOpensTheDrawer() {
         runBlocking {
             val repository = FakeLauncherRepository()
+            repository.finishSetup()
             repository.install(launcherAppFixture(label = "Clock"))
             repository.updateSettings { it.copy(drawerOpenDirection = DrawerOpenDirection.SwipeDown) }
             compose.setContent { LessLauncher(repository) }
@@ -326,6 +332,7 @@ class DrawerTest {
     @Test
     fun gearOpensSettings() {
         val repository = FakeLauncherRepository()
+        repository.finishSetup()
         compose.setContent { LessLauncher(repository) }
         compose.onRoot().performTouchInput { swipeUp() }
 
@@ -337,6 +344,7 @@ class DrawerTest {
     @Test
     fun backFromSettingsReturnsToTheDrawer() {
         val repository = FakeLauncherRepository()
+        repository.finishSetup()
         repository.install(launcherAppFixture(label = "Clock"))
         lateinit var backDispatcher: OnBackPressedDispatcher
         compose.setContent {
@@ -355,6 +363,7 @@ class DrawerTest {
     @Test
     fun pressingHomeReturnsToHomeRatherThanTheDrawer() {
         val repository = FakeLauncherRepository()
+        repository.finishSetup()
         repository.install(launcherAppFixture(label = "Clock"))
         val homeRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
         compose.setContent { LessLauncher(repository, homeRequests = homeRequests) }

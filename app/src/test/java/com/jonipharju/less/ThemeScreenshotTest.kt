@@ -132,8 +132,11 @@ private fun captureDrawer(
     }
 }
 
+/** A launcher in ordinary use, so the screenshots show the Theme and not a first-run prompt. */
 private fun repositoryWithApps() =
     FakeLauncherRepository().also { repository ->
+        repository.finishSetup()
+        repository.holdHomeRole()
         runBlocking {
             listOf("Calendar", "Camera", "Clock", "Maps").forEachIndexed { index, label ->
                 val app = launcherAppFixture(label).copy(icon = screenshotIcon(index))

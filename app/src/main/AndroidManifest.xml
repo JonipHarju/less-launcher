@@ -7,11 +7,22 @@
       LauncherApps.getActivityList still obeys package visibility. Declaring the
       MAIN/LAUNCHER intent is how a home app sees every launchable activity without
       QUERY_ALL_PACKAGES.
+
+      Setup asks the platform which app dials, messages, takes a photo or opens a web
+      page, so the Favorites it proposes are resolved by intent rather than by package
+      name. Messaging and browser are MAIN activities the first filter already covers;
+      dialling and the camera are not, so they are named on their own.
     -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
         </intent>
     </queries>
 

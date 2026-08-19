@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
@@ -5,6 +7,14 @@ plugins {
     alias(libs.plugins.protobuf)
     alias(libs.plugins.roborazzi)
 }
+
+// Release signing is a local concern: keystore.properties is untracked, so CI and a
+// fresh clone still build — they just produce an unsigned release.
+val releaseKeystore =
+    Properties().apply {
+        val file = rootProject.file("keystore.properties")
+        if (file.exists()) file.inputStream().use(::load)
+    }
 
 android {
     namespace = "com.jonipharju.less"
@@ -17,6 +27,26 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (releaseKeystore.isNotEmpty()) {
+            create("release") {
+                storeFile = file(releaseKeystore.getProperty("storeFile"))
+                storePassword = releaseKeystore.getProperty("storePassword")
+                keyAlias = releaseKeystore.getProperty("keyAlias")
+                keyPassword = releaseKeystore.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Not debuggable, so ART compiles it properly and Home opens at full speed.
+            // R8 stays off until a device run confirms Compose and protobuf-lite survive it.
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+        }
     }
 
     compileOptions {

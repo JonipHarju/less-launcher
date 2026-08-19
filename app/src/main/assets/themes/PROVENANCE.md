@@ -10,8 +10,8 @@ The two non-artwork Themes ship generated assets, not flat colour fills.
 | Off White | `off_white_wallpaper.webp` | Less | Off White | 2026 | — | Generated for Less |
 | Parasol | `parasol_wallpaper.webp` | Claude Monet | Woman with a Parasol - Madame Monet and Her Son | 1875 | 1983.1.29 | https://www.nga.gov/artworks/61379-woman-parasol-madame-monet-and-her-son |
 | Coubron | `coubron_wallpaper.webp` | Jean-Baptiste-Camille Corot | The Forest of Coubron | 1872 | 1942.9.12 | https://www.nga.gov/artworks/1149-forest-coubron |
-| Ruined Church | `ruined_church_wallpaper.webp` | Carl Blechen | A Ruined Church in the Forest | c. 1834 | 2007.111.5 | https://www.nga.gov/artworks/139108-ruined-church-forest |
-| Springhouse | `springhouse_wallpaper.webp` | William Russell Birch | View from the Springhouse at Echo | c. 1808 | 2015.19.2797 | https://www.nga.gov/artworks/195961-view-springhouse-echo |
+| Mount Corcoran | `mount_corcoran_wallpaper.webp` | Albert Bierstadt | Mount Corcoran | c. 1876-1877 | 2014.79.4 | https://www.nga.gov/artworks/166428-mount-corcoran |
+| Departure | `departure_wallpaper.webp` | Thomas Cole | The Departure | 1837 | 2014.79.13 | https://www.nga.gov/artworks/166439-departure |
 
 Images were retrieved from the NGA IIIF service (`api.nga.gov/iiif`) and cropped
 to a phone portrait without altering colour. No Theme asset is fetched at runtime.

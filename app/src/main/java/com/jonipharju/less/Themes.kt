@@ -104,54 +104,55 @@ internal val CoubronTheme =
         drawerTreatment = DrawerTreatment.Opaque,
     )
 
-internal val RuinedChurchTheme =
+internal val MountCorcoranTheme =
     Theme(
-        id = "ruined-church",
-        name = "Ruined Church",
-        wallpaperAsset = R.drawable.ruined_church_wallpaper,
+        id = "mount-corcoran",
+        name = "Mount Corcoran",
+        wallpaperAsset = R.drawable.mount_corcoran_wallpaper,
         credit =
             Credit(
-                artist = "Carl Blechen",
-                title = "A Ruined Church in the Forest",
-                year = "c. 1834",
+                artist = "Albert Bierstadt",
+                title = "Mount Corcoran",
+                year = "c. 1876-1877",
                 collection = "National Gallery of Art, Washington",
                 source = "NGA Open Access (CC0)",
             ),
-        // Blechen's drawing lives on cream paper. The scrim is that paper, so
-        // umber ink stays readable whether or not the user applied the wallpaper.
-        scrim = Scrim(top = Color(0xFFE8DCC8).copy(alpha = 0.94f), bottom = Color(0xFFE4D4B8).copy(alpha = 0.90f)),
+        // Home sits over the painting's middle, which is storm cloud and dark timber.
+        // A cold slate scrim carries that key to the top, where the lit peak would
+        // otherwise leave pale text with nothing behind it.
+        scrim = Scrim(top = Color(0xFF141A22).copy(alpha = 0.94f), bottom = Color(0xFF1A2430).copy(alpha = 0.90f)),
         fontFamily = Manrope,
         typeScale = SharedTypeScale,
-        textColor = Color(0xFF2A2218),
-        secondaryTextColor = Color(0xFF4A3C2C),
-        accentColor = Color(0xFF3D2E22),
-        iconMode = IconMode.Off,
-        drawerTreatment = DrawerTreatment.FlatTranslucent,
+        textColor = Color(0xFFEAF0F5),
+        secondaryTextColor = Color(0xFFC3D0DC),
+        accentColor = Color(0xFF8FB8D8),
+        iconMode = IconMode.Tinted,
+        drawerTreatment = DrawerTreatment.Blurred,
     )
 
-internal val SpringhouseTheme =
+internal val DepartureTheme =
     Theme(
-        id = "springhouse",
-        name = "Springhouse",
-        wallpaperAsset = R.drawable.springhouse_wallpaper,
+        id = "departure",
+        name = "Departure",
+        wallpaperAsset = R.drawable.departure_wallpaper,
         credit =
             Credit(
-                artist = "William Russell Birch",
-                title = "View from the Springhouse at Echo",
-                year = "c. 1808",
+                artist = "Thomas Cole",
+                title = "The Departure",
+                year = "1837",
                 collection = "National Gallery of Art, Washington",
                 source = "NGA Open Access (CC0)",
             ),
-        // Birch's wash is already a pale sheet. The scrim holds that key so the
-        // graphite-dark text never lands on a dark system Wallpaper unprotected.
-        scrim = Scrim(top = Color(0xFFE6E0D4).copy(alpha = 0.94f), bottom = Color(0xFFDED6C8).copy(alpha = 0.90f)),
+        // Cole painted a spring morning. The scrim is that light held as parchment, so
+        // bark-dark text keeps its contrast over the castle without cooling the picture.
+        scrim = Scrim(top = Color(0xFFF0E7D6).copy(alpha = 0.94f), bottom = Color(0xFFE7DCC6).copy(alpha = 0.90f)),
         fontFamily = Manrope,
         typeScale = SharedTypeScale,
-        textColor = Color(0xFF2C2A24),
-        secondaryTextColor = Color(0xFF4A463C),
-        accentColor = Color(0xFF4A6740),
+        textColor = Color(0xFF241E14),
+        secondaryTextColor = Color(0xFF473B29),
+        accentColor = Color(0xFF5C6B33),
         iconMode = IconMode.Original,
-        drawerTreatment = DrawerTreatment.Blurred,
+        drawerTreatment = DrawerTreatment.Opaque,
     )
 
 internal val Themes: List<Theme> =
@@ -160,8 +161,8 @@ internal val Themes: List<Theme> =
         OffWhiteTheme,
         ParasolTheme,
         CoubronTheme,
-        RuinedChurchTheme,
-        SpringhouseTheme,
+        MountCorcoranTheme,
+        DepartureTheme,
     )
 
 internal fun themeById(id: String): Theme = Themes.firstOrNull { it.id == id } ?: NearBlackTheme

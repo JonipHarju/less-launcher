@@ -18,7 +18,7 @@ class ThemesTest {
     @Test
     fun sixThemesShipAndEachCarriesAFullCredit() {
         assertEquals(
-            listOf("near-black", "off-white", "parasol", "coubron", "ruined-church", "springhouse"),
+            listOf("near-black", "off-white", "parasol", "coubron", "mount-corcoran", "departure"),
             Themes.map(Theme::id),
         )
         Themes.forEach { theme ->
@@ -55,23 +55,23 @@ class ThemesTest {
         )
         assertEquals(
             Credit(
-                artist = "Carl Blechen",
-                title = "A Ruined Church in the Forest",
-                year = "c. 1834",
+                artist = "Albert Bierstadt",
+                title = "Mount Corcoran",
+                year = "c. 1876-1877",
                 collection = "National Gallery of Art, Washington",
                 source = "NGA Open Access (CC0)",
             ),
-            themeById("ruined-church").credit,
+            themeById("mount-corcoran").credit,
         )
         assertEquals(
             Credit(
-                artist = "William Russell Birch",
-                title = "View from the Springhouse at Echo",
-                year = "c. 1808",
+                artist = "Thomas Cole",
+                title = "The Departure",
+                year = "1837",
                 collection = "National Gallery of Art, Washington",
                 source = "NGA Open Access (CC0)",
             ),
-            themeById("springhouse").credit,
+            themeById("departure").credit,
         )
     }
 

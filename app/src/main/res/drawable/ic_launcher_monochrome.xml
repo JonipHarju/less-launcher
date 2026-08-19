@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Themeable Layer. Less tints other apps by this layer in Tinted Icon Mode, so it
+  ships one of its own rather than being the app that ruins the effect.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,34H50V64H70V74H40Z" />
+</vector>

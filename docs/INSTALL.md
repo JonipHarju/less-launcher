@@ -34,13 +34,18 @@ Chrome) to install apps, then come back and tap the file again.
 
 ## 3. Make Less your home screen
 
-Less asks you to do this during first-run setup, right after you pick a Theme.
-Accept the prompt and you are done.
+After installing, **Less has an icon in your current launcher's app list** like
+any other app. Open it from there and first-run setup asks for the home role
+itself, right after you pick a Theme. Accept the prompt and you are done.
 
-If you skipped it, the Drawer keeps a reminder at the top until Less holds the
+If you skip it, the Drawer keeps a reminder at the top until Less holds the
 role, and you can also set it by hand:
 
 **Settings → Apps → Default apps → Home app → Less**
+
+In Finnish: **Asetukset → Sovellukset → Oletussovellukset → Aloitusnäyttösovellus**.
+If the wording differs on your phone, search Settings for `oletus` — the
+default-apps screen comes up whatever it is called locally.
 
 The exact path varies by manufacturer. On Samsung it is Settings → Apps →
 Choose default apps → Home app.

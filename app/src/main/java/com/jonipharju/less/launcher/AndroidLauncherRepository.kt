@@ -342,18 +342,23 @@ class AndroidLauncherRepository(
         if (profileSerialNumber < 0) return emptyList()
 
         return try {
-            launcherApps.getActivityList(null, user).map { activity ->
-                LauncherApp(
-                    id =
-                        LauncherAppId(
-                            packageName = activity.componentName.packageName,
-                            activityName = activity.componentName.className,
-                            profileSerialNumber = profileSerialNumber,
-                        ),
-                    label = activity.label.toString(),
-                    icon = activity.getIcon(context.resources.displayMetrics.densityDpi).toAppIcon(),
-                )
-            }
+            launcherApps
+                .getActivityList(null, user)
+                // Less now carries a LAUNCHER icon so other launchers can open it, which also
+                // means it comes back in its own query. It is the Drawer, not an app in it.
+                .filterNot { it.componentName.packageName == context.packageName }
+                .map { activity ->
+                    LauncherApp(
+                        id =
+                            LauncherAppId(
+                                packageName = activity.componentName.packageName,
+                                activityName = activity.componentName.className,
+                                profileSerialNumber = profileSerialNumber,
+                            ),
+                        label = activity.label.toString(),
+                        icon = activity.getIcon(context.resources.displayMetrics.densityDpi).toAppIcon(),
+                    )
+                }
         } catch (_: SecurityException) {
             emptyList()
         }

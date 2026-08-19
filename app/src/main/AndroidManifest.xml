@@ -35,9 +35,8 @@
         android:backupAgent=".launcher.ConfigurationRestoreAgent"
         android:dataExtractionRules="@xml/backup_rules"
         android:fullBackupOnly="true"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.Less">
         <activity
@@ -46,10 +45,16 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true">
+            <!--
+              HOME offers Less as a home app. LAUNCHER gives it an icon in whichever launcher is
+              currently the home app, which is the only way a user who has never opened the
+              default-apps screen can reach Less at all — see ADR-0008.
+            -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

@@ -106,6 +106,8 @@ internal fun Settings(
             label = { mode -> stringResource(mode.labelResource()) },
             onChoose = { mode -> store { it.copy(iconModeOverride = mode) } },
         )
+
+        ConfigurationFile(repository)
     }
 }
 

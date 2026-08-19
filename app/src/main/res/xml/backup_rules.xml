@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Favorites, Hidden Apps, settings and the active Theme are the one Proto DataStore file, so
+  backing that file up is backing the user's whole Configuration up. Nothing else is: the
+  installed-app list is queried live, and Less keeps no other state worth carrying.
+
+  A rule that includes anything excludes everything it does not name, which is the point: a
+  file worth carrying later has to be named here deliberately.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="file" path="datastore/launcher_user_data.pb" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="datastore/launcher_user_data.pb" />
+    </device-transfer>
+</data-extraction-rules>

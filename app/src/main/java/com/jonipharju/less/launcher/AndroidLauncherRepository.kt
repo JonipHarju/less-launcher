@@ -7,10 +7,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.UserHandle
 import android.os.UserManager
+import androidx.compose.ui.graphics.asImageBitmap
 import com.jonipharju.less.launcher.proto.StoredFavorite
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -234,6 +239,7 @@ class AndroidLauncherRepository(
                             profileSerialNumber = profileSerialNumber,
                         ),
                     label = activity.label.toString(),
+                    icon = activity.getIcon(context.resources.displayMetrics.densityDpi).toAppIcon(),
                 )
             }
         } catch (_: SecurityException) {
@@ -241,6 +247,22 @@ class AndroidLauncherRepository(
         }
     }
 }
+
+private fun Drawable.toAppIcon(): AppIcon {
+    val themed = (this as? AdaptiveIconDrawable)?.monochrome
+    return AppIcon(native = rendered(), themeable = themed?.rendered())
+}
+
+private fun Drawable.rendered() =
+    Bitmap
+        .createBitmap(
+            intrinsicWidth.coerceAtLeast(1),
+            intrinsicHeight.coerceAtLeast(1),
+            Bitmap.Config.ARGB_8888,
+        ).also { bitmap ->
+            setBounds(0, 0, bitmap.width, bitmap.height)
+            draw(Canvas(bitmap))
+        }.asImageBitmap()
 
 private fun Favorite.toProto(): StoredFavorite =
     StoredFavorite

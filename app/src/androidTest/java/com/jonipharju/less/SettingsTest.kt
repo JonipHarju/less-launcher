@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import com.jonipharju.less.launcher.DrawerOpenDirection
@@ -14,6 +15,7 @@ import com.jonipharju.less.launcher.FakeLauncherRepository
 import com.jonipharju.less.launcher.Favorite
 import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.HomeAlignment
+import com.jonipharju.less.launcher.IconMode
 import com.jonipharju.less.launcher.ShownFavorite
 import com.jonipharju.less.launcher.launcherAppFixture
 import com.jonipharju.less.launcher.shownAmong
@@ -25,6 +27,16 @@ import org.junit.Rule
 import org.junit.Test
 
 class SettingsTest {
+    @Test
+    fun choosingAnIconModeStoresTheGlobalOverride() {
+        val repository = FakeLauncherRepository()
+        compose.setContent { Settings(repository, onClose = {}) }
+
+        compose.onNodeWithText("Tinted").performScrollTo().performClick()
+
+        compose.runOnIdle { assertEquals(IconMode.Tinted, repository.settings.value.iconModeOverride) }
+    }
+
     @get:Rule
     val compose = createComposeRule()
 

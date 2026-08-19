@@ -1,11 +1,19 @@
 package com.jonipharju.less.launcher
 
+import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.flow.StateFlow
+
+/** Native artwork and, when supplied by the app, its themeable monochrome layer. */
+data class AppIcon(
+    val native: ImageBitmap,
+    val themeable: ImageBitmap?,
+)
 
 /** A launchable activity and the profile that owns it. */
 data class LauncherApp(
     val id: LauncherAppId,
     val label: String,
+    val icon: AppIcon? = null,
 )
 
 /** Platform-neutral identity for an installed launchable activity. */

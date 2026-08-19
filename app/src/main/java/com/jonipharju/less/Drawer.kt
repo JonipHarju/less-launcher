@@ -4,9 +4,12 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicText
@@ -62,6 +65,7 @@ internal fun Drawer(
     val opensKeyboard = settings.opensKeyboardWithDrawer
     val drawerOpenDirection = settings.drawerOpenDirection
     val theme = LocalTheme.current
+    val iconMode = effectiveIconMode(theme, settings.iconModeOverride)
 
     var curated by remember { mutableStateOf<LauncherApp?>(null) }
     var crowdedHome by remember { mutableStateOf(false) }
@@ -97,23 +101,32 @@ internal fun Drawer(
                     "${app.id.profileSerialNumber}:${app.id.packageName}/${app.id.activityName}"
                 },
             ) { app ->
-                BasicText(
-                    text = app.label,
+                Row(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .combinedClickable(
                                 onClick = { repository.launch(app) },
                                 onLongClick = { curated = app },
-                            ).padding(horizontal = 24.dp, vertical = 16.dp),
-                    style =
-                        TextStyle(
-                            color = theme.textColor,
-                            fontFamily = theme.fontFamily,
-                            fontSize = theme.typeScale.app.size,
-                            fontWeight = theme.typeScale.app.weight,
-                        ),
-                )
+                            ).padding(horizontal = 24.dp, vertical = 10.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    LauncherAppIcon(app.icon, iconMode, app.label)
+                    if (iconMode != com.jonipharju.less.launcher.IconMode.Hidden && app.icon != null) {
+                        Spacer(Modifier.width(12.dp))
+                    }
+                    BasicText(
+                        text = app.label,
+                        modifier = Modifier.padding(vertical = 6.dp),
+                        style =
+                            TextStyle(
+                                color = theme.textColor,
+                                fontFamily = theme.fontFamily,
+                                fontSize = theme.typeScale.app.size,
+                                fontWeight = theme.typeScale.app.weight,
+                            ),
+                    )
+                }
             }
         }
     }

@@ -3,11 +3,18 @@ package com.jonipharju.less
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
+import com.jonipharju.less.launcher.IconMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemesTest {
+    @Test
+    fun aUserIconModeOverridesTheActiveTheme() {
+        assertEquals(IconMode.Original, effectiveIconMode(CoubronTheme, IconMode.Original))
+        assertEquals(IconMode.Tinted, effectiveIconMode(CoubronTheme, null))
+    }
+
     @Test
     fun sixThemesShipAndEachCarriesAFullCredit() {
         assertEquals(

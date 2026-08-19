@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.jonipharju.less.launcher.DrawerOpenDirection
 import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.HomeAlignment
+import com.jonipharju.less.launcher.IconMode
 import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.LauncherSettings
@@ -95,6 +96,14 @@ internal fun Settings(
         )
 
         FavoritesEditor(repository)
+
+        ChoiceGroup(
+            title = stringResource(R.string.settings_icon_mode),
+            options = listOf(null, IconMode.Hidden, IconMode.Tinted, IconMode.Original),
+            chosen = settings.iconModeOverride,
+            label = { mode -> stringResource(mode.labelResource()) },
+            onChoose = { mode -> store { it.copy(iconModeOverride = mode) } },
+        )
     }
 }
 
@@ -340,4 +349,12 @@ private fun HomeAlignment.labelResource() =
     when (this) {
         HomeAlignment.Left -> R.string.settings_home_alignment_left
         HomeAlignment.Centred -> R.string.settings_home_alignment_centred
+    }
+
+private fun IconMode?.labelResource() =
+    when (this) {
+        null -> R.string.settings_icon_mode_theme
+        IconMode.Hidden -> R.string.settings_icon_mode_off
+        IconMode.Tinted -> R.string.settings_icon_mode_tinted
+        IconMode.Original -> R.string.settings_icon_mode_native
     }

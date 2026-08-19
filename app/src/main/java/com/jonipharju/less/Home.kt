@@ -3,10 +3,13 @@ package com.jonipharju.less
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -30,6 +33,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jonipharju.less.launcher.HomeAlignment
+import com.jonipharju.less.launcher.IconMode
 import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.ShownFavorite
@@ -59,6 +63,7 @@ internal fun Home(
     val scope = rememberCoroutineScope()
     val drawerOpenDirection = settings.drawerOpenDirection
     val theme = LocalTheme.current
+    val iconMode = effectiveIconMode(theme, settings.iconModeOverride)
 
     var curated by remember { mutableStateOf<LauncherAppId?>(null) }
     var renaming by remember { mutableStateOf<LauncherAppId?>(null) }
@@ -128,6 +133,7 @@ internal fun Home(
                         FavoriteRow(
                             shownFavorite = shownFavorite,
                             textAlign = textAlign,
+                            iconMode = iconMode,
                             onLaunch = { repository.launch(shownFavorite.app) },
                             onCurate = { curated = shownFavorite.favorite.appId },
                             onDragBy = { rows ->
@@ -231,6 +237,7 @@ private fun TombstoneRow(
 private fun FavoriteRow(
     shownFavorite: ShownFavorite,
     textAlign: TextAlign,
+    iconMode: IconMode,
     onLaunch: () -> Unit,
     onCurate: () -> Unit,
     onDragBy: (Int) -> Unit,
@@ -241,13 +248,11 @@ private fun FavoriteRow(
     // way there is carried into the next row rather than thrown away.
     var carry by remember { mutableFloatStateOf(0f) }
 
-    BasicText(
-        text = shownFavorite.label,
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .height(FavoriteRowHeight)
-                .wrapContentHeight(Alignment.CenterVertically)
                 .onTapLongPressOrDrag(
                     key = shownFavorite.favorite.appId,
                     onTap = onLaunch,
@@ -268,8 +273,16 @@ private fun FavoriteRow(
                         onDragEnd()
                     },
                 ),
-        style = themedAppTextStyle(color = LocalTheme.current.textColor, textAlign = textAlign),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LauncherAppIcon(shownFavorite.app?.icon, iconMode, shownFavorite.label)
+        if (iconMode != IconMode.Hidden && shownFavorite.app?.icon != null) Spacer(Modifier.width(12.dp))
+        BasicText(
+            text = shownFavorite.label,
+            modifier = Modifier.weight(1f),
+            style = themedAppTextStyle(color = LocalTheme.current.textColor, textAlign = textAlign),
+        )
+    }
 }
 
 /** Rename, unpin, app info and uninstall, for the Favorite the user is long-pressing. */

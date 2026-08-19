@@ -19,6 +19,11 @@
     <string name="settings_favorites">Favorites</string>
     <string name="settings_favorites_empty">None yet. Long-press an app in the Drawer to pin one.</string>
     <string name="settings_themes">Themes</string>
+    <string name="settings_icon_mode">Icons</string>
+    <string name="settings_icon_mode_theme">Theme default</string>
+    <string name="settings_icon_mode_off">Off</string>
+    <string name="settings_icon_mode_tinted">Tinted</string>
+    <string name="settings_icon_mode_native">Native</string>
     <string name="favorite_pin">Pin to Home</string>
     <string name="favorite_unpin">Unpin from Home</string>
     <string name="favorite_rename">Rename</string>

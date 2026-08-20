@@ -65,7 +65,9 @@ internal fun Drawer(
     var query by remember { mutableStateOf("") }
     // A Hidden App is out of the Drawer entirely, search included. A Favorite the user renamed
     // answers to their own name for it as well as to its real one.
-    val rankedApps = installedApps.withoutHidden(hiddenApps).rankedFor(query, favorites.customLabels())
+    val drawerApps = installedApps.withoutHidden(hiddenApps)
+    val customLabels = favorites.customLabels()
+    val rankedApps = drawerApps.rankedFor(query, customLabels)
     val searchFocusRequester = remember { FocusRequester() }
     val opensKeyboard = settings.opensKeyboardWithDrawer
     val drawerOpenDirection = settings.drawerOpenDirection
@@ -96,7 +98,16 @@ internal fun Drawer(
         }
         SearchField(
             query = query,
-            onQueryChange = { query = it },
+            onQueryChange = { nextQuery ->
+                val matchingApp =
+                    drawerSearchAutoOpenMatch(
+                        previousQuery = query,
+                        nextQuery = nextQuery,
+                        results = drawerApps.rankedFor(nextQuery, customLabels),
+                    )
+                query = nextQuery
+                matchingApp?.let(repository::launch)
+            },
             onSearch = { rankedApps.firstOrNull()?.let(repository::launch) },
             focusRequester = searchFocusRequester,
         )
@@ -182,6 +193,19 @@ internal fun Drawer(
         )
     }
 }
+
+/** The sole visible result to open after the user types far enough into a Drawer search. */
+internal fun drawerSearchAutoOpenMatch(
+    previousQuery: String,
+    nextQuery: String,
+    results: List<LauncherApp>,
+): LauncherApp? =
+    results.singleOrNull()?.takeIf {
+        nextQuery.length >= DRAWER_SEARCH_AUTO_OPEN_MINIMUM_LENGTH &&
+            nextQuery.length > previousQuery.length
+    }
+
+private const val DRAWER_SEARCH_AUTO_OPEN_MINIMUM_LENGTH = 3
 
 /**
  * The standing offer to become the default launcher, in the Drawer rather than over it: it is

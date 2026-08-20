@@ -2,11 +2,13 @@ package com.jonipharju.less
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
@@ -276,19 +278,40 @@ private fun <T> ChoiceGroup(
     GroupTitle(title)
     options.forEach { option ->
         val isChosen = option == chosen
-        BasicText(
-            text = label(option),
+        Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .selectable(selected = isChosen, onClick = { onChoose(option) })
                     .padding(horizontal = 24.dp, vertical = 14.dp),
-            style =
-                themedTextStyle(
-                    color = if (isChosen) LocalTheme.current.textColor else LocalTheme.current.secondaryTextColor,
-                    size = 20.sp,
-                ),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SelectionMarker(isChosen)
+            BasicText(
+                text = label(option),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .selectable(selected = isChosen, onClick = { onChoose(option) }),
+                style =
+                    themedTextStyle(
+                        color = if (isChosen) LocalTheme.current.textColor else LocalTheme.current.secondaryTextColor,
+                        size = 20.sp,
+                    ),
+            )
+        }
+    }
+}
+
+/** A fixed-width marker slot keeps every choice row in place as selection changes. */
+@Composable
+private fun SelectionMarker(selected: Boolean) {
+    Box(modifier = Modifier.width(24.dp)) {
+        if (selected) {
+            BasicText(
+                text = "✓",
+                style = themedTextStyle(color = LocalTheme.current.accentColor, size = 20.sp),
+            )
+        }
     }
 }
 
@@ -343,30 +366,35 @@ internal fun ThemePicker(repository: LauncherRepository) {
                         },
                     ).padding(horizontal = 24.dp, vertical = 14.dp),
         ) {
-            BasicText(
-                text = option.credit.artist,
-                style =
-                    themedTextStyle(
-                        color = if (isChosen) colors.textColor else colors.secondaryTextColor,
-                        size = 20.sp,
-                    ),
-            )
-            BasicText(
-                text = option.credit.title,
-                style =
-                    themedTextStyle(
-                        color = if (isChosen) colors.textColor else colors.secondaryTextColor,
-                        size = 16.sp,
-                    ),
-            )
-            BasicText(
-                text = "${option.credit.year}  ·  ${option.credit.collection}",
-                style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
-            )
-            BasicText(
-                text = option.credit.source,
-                style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
-            )
+            Row(verticalAlignment = Alignment.Top) {
+                SelectionMarker(isChosen)
+                Column {
+                    BasicText(
+                        text = option.credit.artist,
+                        style =
+                            themedTextStyle(
+                                color = if (isChosen) colors.textColor else colors.secondaryTextColor,
+                                size = 20.sp,
+                            ),
+                    )
+                    BasicText(
+                        text = option.credit.title,
+                        style =
+                            themedTextStyle(
+                                color = if (isChosen) colors.textColor else colors.secondaryTextColor,
+                                size = 16.sp,
+                            ),
+                    )
+                    BasicText(
+                        text = "${option.credit.year}  ·  ${option.credit.collection}",
+                        style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
+                    )
+                    BasicText(
+                        text = option.credit.source,
+                        style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
+                    )
+                }
+            }
         }
     }
 }

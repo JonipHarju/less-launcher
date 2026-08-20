@@ -98,10 +98,6 @@ So the key matters:
 - Neither is in git, and neither should be. Both are in `.gitignore`.
 - Back both up somewhere you will still have them after a laptop reinstall.
 
-If you do lose the key, it is recoverable but not free: export your
-configuration first (settings → "Export to a file"), uninstall, install the newly signed
-build, and import the file back.
-
 ## If something goes wrong
 
 **"App not installed"** — almost always a signature clash with an already

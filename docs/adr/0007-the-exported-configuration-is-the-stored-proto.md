@@ -1,3 +1,6 @@
+Superseded by [ADR-0010](0010-the-configuration-travels-with-automatic-backup.md): the
+exported file is gone; automatic backup of the stored proto still stands.
+
 # The exported Configuration is the stored proto, behind a format version
 
 The file the user exports holds the same proto records the launcher stores,

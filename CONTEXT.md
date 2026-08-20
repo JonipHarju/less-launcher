@@ -60,10 +60,9 @@ _Avoid_: limit, maximum, quota
 **Configuration**:
 Everything the user chose — Favorites with their order and custom labels, Hidden
 Apps, the settings and the Theme those settings name. Android's automatic backup
-carries it to a restored phone, and the user can additionally write it to a file
-of their own and read it back. What the device answers for itself stays with the
-device: how far Setup got, and whether Less has held the Home Role, are left out
-of the exported file and cleared again after a restore.
+carries it to a restored phone. Whether Less has held the Home Role is the
+device's own answer, and a restore clears it so the new phone does not come up
+believing the launcher had once been the default.
 _Avoid_: backup, profile, preset, user data, settings file
 
 ### Apps

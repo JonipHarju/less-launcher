@@ -44,6 +44,15 @@ class SettingsTest {
     }
 
     @Test
+    fun doesNotOfferManualConfigurationImportOrExport() {
+        compose.setContent { Settings(FakeLauncherRepository(), onClose = {}) }
+
+        compose.onNodeWithText("Configuration").assertDoesNotExist()
+        compose.onNodeWithText("Export to a file").assertDoesNotExist()
+        compose.onNodeWithText("Import from a file").assertDoesNotExist()
+    }
+
+    @Test
     fun showsTheStoredChoicesAsSelected() {
         val repository = FakeLauncherRepository()
         compose.setContent { Settings(repository, onClose = {}) }

@@ -4,11 +4,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -81,7 +84,12 @@ internal fun Home(
             horizontalAlignment = settings.homeAlignment.asHorizontalAlignment(),
         ) {
             val textAlign = settings.homeAlignment.asTextAlign()
-            val rowArrangement = settings.homeAlignment.asRowArrangement()
+            val iconsShown = iconMode != IconMode.Off
+            val rowArrangement = settings.homeAlignment.asRowArrangement(iconsShown)
+            val rowTextAlign = if (iconsShown) TextAlign.Start else textAlign
+            // Centred Home still centres the Favorites as a block; IntrinsicSize.Max is what
+            // makes that block as wide as the longest row so the icons can share one x.
+            val centreFavoritesBlock = settings.homeAlignment == HomeAlignment.Centred && iconsShown
             BasicText(
                 text = timeText,
                 modifier = Modifier.clickable(onClick = onOpenClock),
@@ -106,27 +114,32 @@ internal fun Home(
                         shadow = textHalo(theme.secondaryTextColor),
                     ),
             )
-            home.shown.forEach { shownFavorite ->
-                // Keyed by the app rather than by the row it currently occupies, so that a row
-                // being dragged keeps its identity — and with it the live touch — as it moves.
-                key(shownFavorite.favorite.appId) {
-                    if (shownFavorite.app == null) {
-                        TombstoneRow(
-                            shownFavorite = shownFavorite,
-                            textAlign = textAlign,
-                            onDismiss = { curation.curate(shownFavorite.favorite.appId) },
-                        )
-                    } else {
-                        FavoriteRow(
-                            shownFavorite = shownFavorite,
-                            textAlign = textAlign,
-                            rowArrangement = rowArrangement,
-                            iconMode = iconMode,
-                            onLaunch = { repository.launch(shownFavorite.app) },
-                            onCurate = { curation.curate(shownFavorite.favorite.appId) },
-                            onDrag = { travelled -> curation.draggedBy(shownFavorite.favorite.appId, travelled, home.shown) },
-                            onDragEnd = { scope.launch { curation.dragEnded(repository::reorderFavorites) } },
-                        )
+            Column(
+                modifier = if (centreFavoritesBlock) Modifier.width(IntrinsicSize.Max) else Modifier,
+            ) {
+                home.shown.forEach { shownFavorite ->
+                    // Keyed by the app rather than by the row it currently occupies, so that a row
+                    // being dragged keeps its identity — and with it the live touch — as it moves.
+                    key(shownFavorite.favorite.appId) {
+                        if (shownFavorite.app == null) {
+                            TombstoneRow(
+                                shownFavorite = shownFavorite,
+                                textAlign = rowTextAlign,
+                                indentForIcon = centreFavoritesBlock,
+                                onDismiss = { curation.curate(shownFavorite.favorite.appId) },
+                            )
+                        } else {
+                            FavoriteRow(
+                                shownFavorite = shownFavorite,
+                                textAlign = rowTextAlign,
+                                rowArrangement = rowArrangement,
+                                iconMode = iconMode,
+                                onLaunch = { repository.launch(shownFavorite.app) },
+                                onCurate = { curation.curate(shownFavorite.favorite.appId) },
+                                onDrag = { travelled -> curation.draggedBy(shownFavorite.favorite.appId, travelled, home.shown) },
+                                onDragEnd = { scope.launch { curation.dragEnded(repository::reorderFavorites) } },
+                            )
+                        }
                     }
                 }
             }
@@ -182,15 +195,14 @@ internal fun Home(
 private fun TombstoneRow(
     shownFavorite: ShownFavorite,
     textAlign: TextAlign,
+    indentForIcon: Boolean,
     onDismiss: () -> Unit,
 ) {
-    BasicText(
-        text = shownFavorite.label,
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .height(FavoriteRowHeight)
-                .wrapContentHeight(Alignment.CenterVertically)
                 .onTapLongPressOrDrag(
                     key = shownFavorite.favorite.appId,
                     onTap = {},
@@ -198,12 +210,24 @@ private fun TombstoneRow(
                     onDrag = {},
                     onDragEnd = {},
                 ),
-        style =
-            themedAppTextStyle(
-                color = LocalTheme.current.secondaryTextColor,
-                textAlign = textAlign,
-            ),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (indentForIcon) {
+            Spacer(Modifier.width(LauncherIconSize + LauncherIconGap))
+        }
+        BasicText(
+            text = shownFavorite.label,
+            modifier =
+                Modifier
+                    .weight(1f, fill = !indentForIcon)
+                    .wrapContentHeight(Alignment.CenterVertically),
+            style =
+                themedAppTextStyle(
+                    color = LocalTheme.current.secondaryTextColor,
+                    textAlign = textAlign,
+                ),
+        )
+    }
 }
 
 /** One Favorite on Home: tap to launch it, long-press to curate it, drag to move it. */
@@ -236,7 +260,8 @@ private fun FavoriteRow(
         LauncherAppIcon(shownFavorite.app?.icon, iconMode)
         BasicText(
             text = shownFavorite.label,
-            // Shrinkable but not filling, so the arrangement can centre icon and label together.
+            // Shrinkable but not filling, so a centred block can size itself to the longest
+            // label and Left alignment can still pack icon and label against the start.
             modifier = Modifier.weight(1f, fill = false),
             style = themedAppTextStyle(color = LocalTheme.current.textColor, textAlign = textAlign),
         )
@@ -279,11 +304,20 @@ private fun HomeAlignment.asHorizontalAlignment() =
         HomeAlignment.Centred -> Alignment.CenterHorizontally
     }
 
-/** Centred Home centres a Favorite's icon and label as one group, not the label on its own. */
-private fun HomeAlignment.asRowArrangement(): Arrangement.Horizontal =
+/**
+ * Centred Home with icons keeps them in one column inside a centred block, rather than
+ * centring each row's icon and label as a group — different label lengths would stagger
+ * the icons. Without icons, the labels themselves stay centred and nothing holds their place.
+ */
+private fun HomeAlignment.asRowArrangement(iconsShown: Boolean): Arrangement.Horizontal =
     when (this) {
         HomeAlignment.Left -> Arrangement.spacedBy(LauncherIconGap, Alignment.Start)
-        HomeAlignment.Centred -> Arrangement.spacedBy(LauncherIconGap, Alignment.CenterHorizontally)
+        HomeAlignment.Centred ->
+            if (iconsShown) {
+                Arrangement.spacedBy(LauncherIconGap, Alignment.Start)
+            } else {
+                Arrangement.spacedBy(LauncherIconGap, Alignment.CenterHorizontally)
+            }
     }
 
 private fun HomeAlignment.asTextAlign() =

@@ -208,6 +208,17 @@ class HomeTest {
     }
 
     @Test
+    fun whenUninstallCannotBeAskedAMessageTellsTheUser() {
+        val repository = homeWith("Clock")
+        repository.uninstallsSucceed = false
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Uninstall").performClick()
+
+        compose.onNodeWithText("Nothing on this phone can uninstall that app.").assertExists()
+    }
+
+    @Test
     fun aRenamedFavoriteShowsItsCustomLabelOnHome() {
         homeWith("Clock")
 

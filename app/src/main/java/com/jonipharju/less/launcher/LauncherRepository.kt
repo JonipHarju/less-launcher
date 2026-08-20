@@ -92,8 +92,8 @@ interface LauncherRepository : AutoCloseable {
     /** Opens the system's own page for [appId], where the OS explains and controls the app. */
     fun showAppInfo(appId: LauncherAppId)
 
-    /** Asks the system to uninstall [appId]. The OS, not Less, confirms it with the user. */
-    fun requestUninstall(appId: LauncherAppId)
+    /** Asks the system to uninstall [appId]. False when the request cannot be made at all. */
+    fun requestUninstall(appId: LauncherAppId): Boolean
 
     /**
      * Asks the platform to hand Less the Home Role. The OS owns the answer; Less only learns it

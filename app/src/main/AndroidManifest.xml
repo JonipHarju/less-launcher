@@ -17,6 +17,10 @@
       toward whichever app the device treats as its clock or calendar. Those categories
       are not LAUNCHER, so they need their own declarations; the VIEW of the calendar
       URI is not a MAIN activity either.
+
+      Uninstall from Curation asks the package installer to delete one package. The
+      delete action is not a LAUNCHER intent, so it needs its own declaration; without
+      it the request resolves to nothing and the menu closes as if it had been accepted.
     -->
     <queries>
         <intent>
@@ -45,6 +49,10 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.APP_CALENDAR" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DELETE" />
+            <data android:scheme="package" />
         </intent>
     </queries>
 

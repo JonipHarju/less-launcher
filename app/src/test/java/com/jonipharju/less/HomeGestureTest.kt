@@ -2,8 +2,10 @@ package com.jonipharju.less
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
@@ -82,6 +84,19 @@ class HomeGestureTest {
             compose.onRoot().performTouchInput { swipeDown() }
             compose.onNodeWithText("Clock").assertExists()
         }
+    }
+
+    @Test
+    fun `when uninstall cannot be asked a dismissible message tells the user`() {
+        val repository = homeWith("Clock")
+        repository.uninstallsSucceed = false
+
+        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Uninstall").performClick()
+
+        compose.onNodeWithText("Nothing on this phone can uninstall that app.").assertExists()
+        compose.onNodeWithText("Got it").performClick()
+        compose.onNodeWithText("Nothing on this phone can uninstall that app.").assertDoesNotExist()
     }
 
     /** Home showing one Favorite per label, in the order given, and nothing else. */

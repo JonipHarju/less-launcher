@@ -276,19 +276,26 @@ private fun <T> ChoiceGroup(
     GroupTitle(title)
     options.forEach { option ->
         val isChosen = option == chosen
-        BasicText(
-            text = label(option),
+        Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .semantics(mergeDescendants = true) {}
                     .selectable(selected = isChosen, onClick = { onChoose(option) })
                     .padding(horizontal = 24.dp, vertical = 14.dp),
-            style =
-                themedTextStyle(
-                    color = if (isChosen) LocalTheme.current.textColor else LocalTheme.current.secondaryTextColor,
-                    size = 20.sp,
-                ),
-        )
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ChosenMarker(isChosen)
+            BasicText(
+                text = label(option),
+                style =
+                    themedTextStyle(
+                        color = if (isChosen) LocalTheme.current.textColor else LocalTheme.current.secondaryTextColor,
+                        size = 20.sp,
+                    ),
+            )
+        }
     }
 }
 
@@ -329,7 +336,7 @@ internal fun ThemePicker(repository: LauncherRepository) {
 
     Themes.forEach { option ->
         val isChosen = option.id == chosen.id
-        Column(
+        Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -342,31 +349,36 @@ internal fun ThemePicker(repository: LauncherRepository) {
                             scope.launch { repository.chooseTheme(option.id, option.wallpaperAsset) }
                         },
                     ).padding(horizontal = 24.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            BasicText(
-                text = option.credit.artist,
-                style =
-                    themedTextStyle(
-                        color = if (isChosen) colors.textColor else colors.secondaryTextColor,
-                        size = 20.sp,
-                    ),
-            )
-            BasicText(
-                text = option.credit.title,
-                style =
-                    themedTextStyle(
-                        color = if (isChosen) colors.textColor else colors.secondaryTextColor,
-                        size = 16.sp,
-                    ),
-            )
-            BasicText(
-                text = "${option.credit.year}  ·  ${option.credit.collection}",
-                style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
-            )
-            BasicText(
-                text = option.credit.source,
-                style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
-            )
+            ChosenMarker(isChosen)
+            Column(modifier = Modifier.weight(1f)) {
+                BasicText(
+                    text = option.credit.artist,
+                    style =
+                        themedTextStyle(
+                            color = if (isChosen) colors.textColor else colors.secondaryTextColor,
+                            size = 20.sp,
+                        ),
+                )
+                BasicText(
+                    text = option.credit.title,
+                    style =
+                        themedTextStyle(
+                            color = if (isChosen) colors.textColor else colors.secondaryTextColor,
+                            size = 16.sp,
+                        ),
+                )
+                BasicText(
+                    text = "${option.credit.year}  ·  ${option.credit.collection}",
+                    style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
+                )
+                BasicText(
+                    text = option.credit.source,
+                    style = themedTextStyle(color = colors.secondaryTextColor, size = 14.sp),
+                )
+            }
         }
     }
 }

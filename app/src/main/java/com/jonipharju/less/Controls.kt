@@ -2,11 +2,13 @@ package com.jonipharju.less
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -92,4 +94,23 @@ internal fun GroupTitle(title: String) {
         modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
         style = themedTextStyle(color = LocalTheme.current.secondaryTextColor, size = 14.sp),
     )
+}
+
+/**
+ * The same kind of mark the rest of the interface already speaks: one character, the Theme's
+ * own type and colour. Unchosen rows keep its width so choosing a neighbour does not shift
+ * the labels.
+ */
+internal const val CHOSEN_GLYPH = "●"
+
+@Composable
+internal fun ChosenMarker(chosen: Boolean) {
+    Box(modifier = Modifier.width(20.dp), contentAlignment = Alignment.CenterStart) {
+        if (chosen) {
+            BasicText(
+                text = CHOSEN_GLYPH,
+                style = themedTextStyle(size = 20.sp),
+            )
+        }
+    }
 }

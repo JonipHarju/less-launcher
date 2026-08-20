@@ -59,6 +59,76 @@ class HomeTest {
     }
 
     @Test
+    fun aTapThatDriftsLessThanTouchSlopStillLaunches() {
+        val repository = homeWith("Clock")
+        val clock = repository.installedApps.value.single()
+
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, viewConfiguration.touchSlop / 2f))
+            up()
+        }
+
+        compose.runOnIdle { assertEquals(listOf(clock), repository.launchedApps) }
+    }
+
+    @Test
+    fun aDragBeforeTheLongPressTimeoutScrollsHomeAndLaunchesNothing() {
+        val labels = (1..20).map { "App$it" }
+        val repository = homeWith(*labels.toTypedArray())
+        val beforeDrag = compose.onNodeWithText("App1").getUnclippedBoundsInRoot().top
+
+        compose.onNodeWithText("App1").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, -viewConfiguration.touchSlop * 8f))
+            up()
+        }
+
+        compose.runOnIdle { assertEquals(emptyList<LauncherApp>(), repository.launchedApps) }
+        val afterDrag = compose.onNodeWithText("App1").getUnclippedBoundsInRoot().top
+        assertTrue("Expected $afterDrag above $beforeDrag", afterDrag < beforeDrag)
+    }
+
+    @Test
+    fun theDrawerOpenDirectionOnAFavoriteOpensTheDrawerAndLaunchesNothing() {
+        var drawerOpens = 0
+        val repository = homeWith("Clock", onOpenDrawer = { drawerOpens++ })
+
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, -FavoriteRowHeight.toPx() * 1.5f))
+            up()
+        }
+
+        compose.runOnIdle {
+            assertEquals(1, drawerOpens)
+            assertEquals(emptyList<LauncherApp>(), repository.launchedApps)
+        }
+    }
+
+    @Test
+    fun tappingATombstoneLaunchesNothingAndALongPressOpensCuration() {
+        val repository = homeWith("Clock")
+        val clock = repository.installedApps.value.single()
+        compose.runOnIdle { repository.makeUnavailable(clock.id) }
+
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, viewConfiguration.touchSlop / 2f))
+            up()
+        }
+        compose.runOnIdle { assertEquals(emptyList<LauncherApp>(), repository.launchedApps) }
+
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+            moveBy(Offset(0f, 1f))
+            up()
+        }
+        compose.onNodeWithText("Dismiss Tombstone").assertExists()
+    }
+
+    @Test
     fun tapsOpenSystemAppsAndLaunchFavorite() {
         runBlocking {
             val repository = FakeLauncherRepository()
@@ -291,7 +361,10 @@ class HomeTest {
     }
 
     /** Home showing one Favorite per label, in the order given, and nothing else. */
-    private fun homeWith(vararg labels: String): FakeLauncherRepository {
+    private fun homeWith(
+        vararg labels: String,
+        onOpenDrawer: () -> Unit = {},
+    ): FakeLauncherRepository {
         val repository = FakeLauncherRepository()
         runBlocking {
             labels.forEachIndexed { position, label ->
@@ -308,7 +381,7 @@ class HomeTest {
                 dateText = "Tuesday, August 18, 2026",
                 onOpenClock = {},
                 onOpenCalendar = {},
-                onOpenDrawer = {},
+                onOpenDrawer = onOpenDrawer,
             )
         }
         return repository

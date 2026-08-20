@@ -4,11 +4,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -81,7 +83,11 @@ internal fun Home(
             horizontalAlignment = settings.homeAlignment.asHorizontalAlignment(),
         ) {
             val textAlign = settings.homeAlignment.asTextAlign()
-            val rowArrangement = settings.homeAlignment.asRowArrangement()
+            val iconsShown = iconMode != IconMode.Off
+            val rowArrangement = settings.homeAlignment.asRowArrangement(iconsShown)
+            // Centred Home centres the Favorites as one block when it shows icons. Its intrinsic
+            // width is the longest row, so every icon begins in the same column.
+            val centreFavoritesBlock = settings.homeAlignment == HomeAlignment.Centred && iconsShown
             BasicText(
                 text = timeText,
                 modifier = Modifier.clickable(onClick = onOpenClock),
@@ -106,27 +112,31 @@ internal fun Home(
                         shadow = textHalo(theme.secondaryTextColor),
                     ),
             )
-            home.shown.forEach { shownFavorite ->
-                // Keyed by the app rather than by the row it currently occupies, so that a row
-                // being dragged keeps its identity — and with it the live touch — as it moves.
-                key(shownFavorite.favorite.appId) {
-                    if (shownFavorite.app == null) {
-                        TombstoneRow(
-                            shownFavorite = shownFavorite,
-                            textAlign = textAlign,
-                            onDismiss = { curation.curate(shownFavorite.favorite.appId) },
-                        )
-                    } else {
-                        FavoriteRow(
-                            shownFavorite = shownFavorite,
-                            textAlign = textAlign,
-                            rowArrangement = rowArrangement,
-                            iconMode = iconMode,
-                            onLaunch = { repository.launch(shownFavorite.app) },
-                            onCurate = { curation.curate(shownFavorite.favorite.appId) },
-                            onDrag = { travelled -> curation.draggedBy(shownFavorite.favorite.appId, travelled, home.shown) },
-                            onDragEnd = { scope.launch { curation.dragEnded(repository::reorderFavorites) } },
-                        )
+            Column(
+                modifier = if (centreFavoritesBlock) Modifier.width(IntrinsicSize.Max) else Modifier,
+            ) {
+                home.shown.forEach { shownFavorite ->
+                    // Keyed by the app rather than by the row it currently occupies, so that a row
+                    // being dragged keeps its identity — and with it the live touch — as it moves.
+                    key(shownFavorite.favorite.appId) {
+                        if (shownFavorite.app == null) {
+                            TombstoneRow(
+                                shownFavorite = shownFavorite,
+                                textAlign = textAlign,
+                                onDismiss = { curation.curate(shownFavorite.favorite.appId) },
+                            )
+                        } else {
+                            FavoriteRow(
+                                shownFavorite = shownFavorite,
+                                textAlign = textAlign,
+                                rowArrangement = rowArrangement,
+                                iconMode = iconMode,
+                                onLaunch = { repository.launch(shownFavorite.app) },
+                                onCurate = { curation.curate(shownFavorite.favorite.appId) },
+                                onDrag = { travelled -> curation.draggedBy(shownFavorite.favorite.appId, travelled, home.shown) },
+                                onDragEnd = { scope.launch { curation.dragEnded(repository::reorderFavorites) } },
+                            )
+                        }
                     }
                 }
             }
@@ -279,11 +289,15 @@ private fun HomeAlignment.asHorizontalAlignment() =
         HomeAlignment.Centred -> Alignment.CenterHorizontally
     }
 
-/** Centred Home centres a Favorite's icon and label as one group, not the label on its own. */
-private fun HomeAlignment.asRowArrangement(): Arrangement.Horizontal =
+/** Centred Home gives shown icons one column; without them, it centres each label. */
+private fun HomeAlignment.asRowArrangement(iconsShown: Boolean): Arrangement.Horizontal =
     when (this) {
         HomeAlignment.Left -> Arrangement.spacedBy(LauncherIconGap, Alignment.Start)
-        HomeAlignment.Centred -> Arrangement.spacedBy(LauncherIconGap, Alignment.CenterHorizontally)
+        HomeAlignment.Centred ->
+            Arrangement.spacedBy(
+                LauncherIconGap,
+                if (iconsShown) Alignment.Start else Alignment.CenterHorizontally,
+            )
     }
 
 private fun HomeAlignment.asTextAlign() =

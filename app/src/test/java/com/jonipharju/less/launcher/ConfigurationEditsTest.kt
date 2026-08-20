@@ -129,6 +129,24 @@ class ConfigurationEditsTest {
     }
 
     /**
+     * A Tombstone marks a loss the user did not ask for. Uninstall is a choice, so the
+     * Favorite is forgotten rather than shown in place as unavailable.
+     */
+    @Test
+    fun `a Favorite the user uninstalls leaves no Tombstone`() {
+        val edited =
+            stored
+                .choosing(Favorite(clock.id, position = 0))
+                .choosing(Favorite(calendar.id, position = 1))
+                .forgetting(clock.id.packageName, clock.id.profileSerialNumber)
+
+        val shown = edited.storedFavorites().shownAmong(listOf(calendar))
+
+        assertEquals(listOf(calendar.id), shown.map { it.favorite.appId })
+        assertTrue(shown.none { it.app == null })
+    }
+
+    /**
      * A package is uninstalled whole, so every activity of it goes — not just the one the
      * Favorite happens to name.
      */
@@ -190,47 +208,5 @@ class ConfigurationEditsTest {
         assertEquals(LauncherSettings(), stored.storedSettings())
         assertEquals(emptyList<Favorite>(), stored.storedFavorites())
         assertEquals(emptySet<LauncherAppId>(), stored.storedHiddenApps())
-    }
-
-    @Test
-    fun `restoring puts a Configuration in place of everything stored`() {
-        val before =
-            stored
-                .choosing(Favorite(browser.id, position = 0, customLabel = "Web"))
-                .hiding(clock.id)
-
-        val edited =
-            before.restoring(
-                LauncherConfiguration(
-                    favorites = listOf(Favorite(calendar.id, position = 1), Favorite(clock.id, position = 0)),
-                    hiddenApps = setOf(browser.id),
-                    settings = LauncherSettings(themeId = "parasol"),
-                ),
-            )
-
-        assertEquals(listOf(clock.id, calendar.id), edited.storedFavorites().map(Favorite::appId))
-        assertEquals(setOf(browser.id), edited.storedHiddenApps())
-        assertEquals("parasol", edited.storedSettings().themeId)
-    }
-
-    /** How far Setup got, and whether Less has held the Home Role, are the device's own answers. */
-    @Test
-    fun `restoring leaves the device's own answers as they stand`() {
-        val before =
-            stored.settingsUpdated {
-                it.copy(setupStep = SetupStep.Done, hasHeldHomeRole = true)
-            }
-
-        val edited =
-            before.restoring(
-                LauncherConfiguration(
-                    favorites = emptyList(),
-                    hiddenApps = emptySet(),
-                    settings = LauncherSettings(setupStep = SetupStep.Theme, hasHeldHomeRole = false),
-                ),
-            )
-
-        assertEquals(SetupStep.Done, edited.storedSettings().setupStep)
-        assertEquals(true, edited.storedSettings().hasHeldHomeRole)
     }
 }

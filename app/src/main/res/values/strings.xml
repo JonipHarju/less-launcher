@@ -26,13 +26,6 @@
     <string name="settings_icon_mode_off">Off</string>
     <string name="settings_icon_mode_tinted">Tinted</string>
     <string name="settings_icon_mode_original">Original</string>
-    <string name="settings_configuration">Configuration</string>
-    <string name="settings_configuration_export">Export to a file</string>
-    <string name="settings_configuration_import">Import from a file</string>
-    <string name="configuration_exported">Configuration saved to that file.</string>
-    <string name="configuration_export_failed">Could not write to that file.</string>
-    <string name="configuration_imported">Configuration imported.</string>
-    <string name="configuration_import_failed">That file is not a Less Configuration. Nothing changed.</string>
     <string name="favorite_pin">Pin to Home</string>
     <string name="favorite_unpin">Unpin from Home</string>
     <string name="favorite_rename">Rename</string>
@@ -42,6 +35,9 @@
     <string name="app_info">App info</string>
     <string name="app_uninstall">Uninstall</string>
     <string name="notice_dismiss">Got it</string>
+    <string name="clock_unavailable">No clock app answers on this phone.</string>
+    <string name="calendar_unavailable">No calendar app answers on this phone.</string>
+    <string name="uninstall_unavailable">Nothing on this phone can uninstall that app.</string>
     <string name="rename_title">Name %1$s on Home</string>
     <string name="rename_name">Name for %1$s</string>
     <string name="rename_save">Save</string>

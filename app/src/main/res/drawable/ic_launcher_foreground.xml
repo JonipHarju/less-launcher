@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  An adaptive icon crops to a shape the device chooses, so the glyph sits inside the
+  central 72x72 safe zone rather than filling the 108x108 canvas.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,34H50V64H70V74H40Z" />
+</vector>

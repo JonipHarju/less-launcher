@@ -47,6 +47,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
+        // Light system-bar appearance would otherwise opt into the platform's navigation-bar
+        // contrast scrim, which paints a bright band over the Wallpaper on light Themes.
+        window.isNavigationBarContrastEnforced = false
         super.onCreate(savedInstanceState)
         launcherRepository = AndroidLauncherRepository(applicationContext)
         setContent {
@@ -111,6 +114,9 @@ internal fun LessLauncher(
             isAppearanceLightStatusBars = lightBars
             isAppearanceLightNavigationBars = lightBars
         }
+        // Kept off here as well as at the edge-to-edge setup: asking for light navigation
+        // icons re-opts into the platform contrast scrim unless we refuse it every time.
+        window.isNavigationBarContrastEnforced = false
     }
 
     LaunchedEffect(Unit) {

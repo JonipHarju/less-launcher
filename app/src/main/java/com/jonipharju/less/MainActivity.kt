@@ -5,7 +5,9 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.icu.text.DateFormat
+import android.net.Uri
 import android.os.Bundle
+import android.provider.AlarmClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -22,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import com.jonipharju.less.launcher.AndroidLauncherRepository
 import com.jonipharju.less.launcher.LauncherRepository
@@ -46,16 +47,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
-        // Light system-bar appearance would otherwise opt into the platform's navigation-bar
-        // contrast scrim, which paints a bright band over the Wallpaper on light Themes.
-        window.isNavigationBarContrastEnforced = false
         super.onCreate(savedInstanceState)
         launcherRepository = AndroidLauncherRepository(applicationContext)
         setContent {
             LessLauncher(
                 repository = launcherRepository,
-                onOpenClock = { openFirst(clockOpenIntents(), ::startActivitySafely) },
-                onOpenCalendar = { now -> openFirst(calendarOpenIntents(now), ::startActivitySafely) },
+                onOpenClock = { startActivitySafely(Intent(AlarmClock.ACTION_SHOW_ALARMS)) },
+                onOpenCalendar = { now ->
+                    startActivitySafely(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("content://com.android.calendar/time/$now")),
+                    )
+                },
                 homeRequests = homeRequests,
             )
         }
@@ -76,25 +78,24 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private fun startActivitySafely(intent: Intent): Boolean =
+    private fun startActivitySafely(intent: Intent) {
         try {
             startActivity(intent)
-            true
         } catch (_: ActivityNotFoundException) {
-            false
+            // Some devices do not provide a clock or calendar activity.
         }
+    }
 }
 
 @Composable
 internal fun LessLauncher(
     repository: LauncherRepository,
-    onOpenClock: () -> Boolean = { true },
-    onOpenCalendar: (Long) -> Boolean = { true },
+    onOpenClock: () -> Unit = {},
+    onOpenCalendar: (Long) -> Unit = {},
     homeRequests: Flow<Unit> = emptyFlow(),
 ) {
     var surface by remember { mutableStateOf(LauncherSurface.Home) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    var notice by remember { mutableStateOf<Int?>(null) }
     val context = LocalContext.current
     val settings by repository.settings.collectAsState()
     val hasReadStoredSettings by repository.hasReadStoredSettings.collectAsState()
@@ -110,9 +111,6 @@ internal fun LessLauncher(
             isAppearanceLightStatusBars = lightBars
             isAppearanceLightNavigationBars = lightBars
         }
-        // Kept off here as well as at the edge-to-edge setup: asking for light navigation
-        // icons re-opts into the platform contrast scrim unless we refuse it every time.
-        window.isNavigationBarContrastEnforced = false
     }
 
     LaunchedEffect(Unit) {
@@ -147,12 +145,8 @@ internal fun LessLauncher(
                         repository = repository,
                         timeText = formattedTime(context, now),
                         dateText = formattedDate(now),
-                        onOpenClock = {
-                            if (!onOpenClock()) notice = R.string.clock_unavailable
-                        },
-                        onOpenCalendar = {
-                            if (!onOpenCalendar(now)) notice = R.string.calendar_unavailable
-                        },
+                        onOpenClock = onOpenClock,
+                        onOpenCalendar = { onOpenCalendar(now) },
                         onOpenDrawer = { surface = LauncherSurface.Drawer },
                     )
                 LauncherSurface.Drawer ->
@@ -168,10 +162,6 @@ internal fun LessLauncher(
                     )
             }
         }
-    }
-
-    notice?.let { message ->
-        Notice(message = stringResource(message), onDismiss = { notice = null })
     }
 }
 

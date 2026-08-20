@@ -12,15 +12,6 @@
       page, so the Favorites it proposes are resolved by intent rather than by package
       name. Messaging and browser are MAIN activities the first filter already covers;
       dialling and the camera are not, so they are named on their own.
-
-      Tapping the clock and the date falls back from an alarms or calendar-URI action
-      toward whichever app the device treats as its clock or calendar. Those categories
-      are not LAUNCHER, so they need their own declarations; the VIEW of the calendar
-      URI is not a MAIN activity either.
-
-      Uninstall from Curation asks the package installer to delete one package. The
-      delete action is not a LAUNCHER intent, so it needs its own declaration; without
-      it the request resolves to nothing and the menu closes as if it had been accepted.
     -->
     <queries>
         <intent>
@@ -32,27 +23,6 @@
         </intent>
         <intent>
             <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.SHOW_ALARMS" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.APP_CLOCK" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data
-                android:host="com.android.calendar"
-                android:scheme="content" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.APP_CALENDAR" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.DELETE" />
-            <data android:scheme="package" />
         </intent>
     </queries>
 

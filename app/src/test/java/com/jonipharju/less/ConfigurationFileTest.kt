@@ -2,6 +2,7 @@ package com.jonipharju.less
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jonipharju.less.launcher.FakeLauncherRepository
 import org.junit.Rule
@@ -16,11 +17,11 @@ class ConfigurationFileTest {
     val compose = createComposeRule()
 
     @Test
-    fun `Settings does not offer to write the Configuration to a file or to read one back`() {
+    fun `Settings offers to write the Configuration to a file and to read one back`() {
         compose.setContent { Settings(FakeLauncherRepository(), onClose = {}) }
 
-        compose.onNodeWithText("Configuration").assertDoesNotExist()
-        compose.onNodeWithText("Export to a file").assertDoesNotExist()
-        compose.onNodeWithText("Import from a file").assertDoesNotExist()
+        compose.onNodeWithText("Configuration").performScrollTo().assertExists()
+        compose.onNodeWithText("Export to a file").performScrollTo().assertExists()
+        compose.onNodeWithText("Import from a file").performScrollTo().assertExists()
     }
 }

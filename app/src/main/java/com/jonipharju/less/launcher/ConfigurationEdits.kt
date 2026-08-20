@@ -83,6 +83,24 @@ internal fun LauncherUserData.reordered(order: List<LauncherAppId>): LauncherUse
 internal fun LauncherUserData.settingsUpdated(update: (LauncherSettings) -> LauncherSettings): LauncherUserData =
     toBuilder().setSettings(update(storedSettings()).mergedInto(settings)).build()
 
+/**
+ * Puts [configuration] in place of everything stored, so that a half-read file cannot leave the
+ * launcher part one setup and part another. What the device answers for itself — how far Setup
+ * got, whether Less has held the Home Role — is left as it stands.
+ */
+internal fun LauncherUserData.restoring(configuration: LauncherConfiguration): LauncherUserData =
+    withFavorites(configuration.favoritesInOrder().map(Favorite::toProto))
+        .withHiddenApps(configuration.hiddenApps.map(LauncherAppId::toStoredHiddenApp))
+        .let { restored ->
+            restored
+                .toBuilder()
+                .setSettings(
+                    configuration
+                        .settingsRestoredOnto(storedSettings())
+                        .mergedInto(restored.settings),
+                ).build()
+        }
+
 /** Favorites are stored in position order, so that the record reads the way Home does. */
 private fun LauncherUserData.withFavorites(favorites: List<StoredFavorite>): LauncherUserData =
     toBuilder()

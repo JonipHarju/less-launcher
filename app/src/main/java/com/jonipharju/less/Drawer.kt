@@ -39,7 +39,6 @@ import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.VerticalSwipe
-import com.jonipharju.less.launcher.appToLaunchForTypedQuery
 import com.jonipharju.less.launcher.asksForHomeRole
 import com.jonipharju.less.launcher.closesDrawer
 import com.jonipharju.less.launcher.customLabels
@@ -64,10 +63,6 @@ internal fun Drawer(
     val hiddenApps by repository.hiddenApps.collectAsState()
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
-    // The query that already auto-launched, so growing it — "out" into "outlook" — cannot fire
-    // again. Remembered with the field, so leaving the Drawer drops both and a later visit is
-    // a new query.
-    var launchedQuery by remember { mutableStateOf<String?>(null) }
     // A Hidden App is out of the Drawer entirely, search included. A Favorite the user renamed
     // answers to their own name for it as well as to its real one.
     val rankedApps = installedApps.withoutHidden(hiddenApps).rankedFor(query, favorites.customLabels())
@@ -79,7 +74,6 @@ internal fun Drawer(
 
     var curated by remember { mutableStateOf<LauncherApp?>(null) }
     var crowdedHome by remember { mutableStateOf(false) }
-    var uninstallFailed by remember { mutableStateOf(false) }
 
     LaunchedEffect(searchFocusRequester, opensKeyboard) {
         if (opensKeyboard) searchFocusRequester.requestFocus()
@@ -101,16 +95,7 @@ internal fun Drawer(
         }
         SearchField(
             query = query,
-            onQueryChange = { newQuery ->
-                val previousQuery = query
-                val rememberedLaunch = launchedQuery?.takeIf { newQuery.startsWith(it) }
-                query = newQuery
-                val ranked =
-                    installedApps.withoutHidden(hiddenApps).rankedFor(newQuery, favorites.customLabels())
-                val target = appToLaunchForTypedQuery(newQuery, ranked, previousQuery, rememberedLaunch)
-                launchedQuery = if (target != null) newQuery else rememberedLaunch
-                target?.let(repository::launch)
-            },
+            onQueryChange = { query = it },
             onSearch = { rankedApps.firstOrNull()?.let(repository::launch) },
             focusRequester = searchFocusRequester,
         )
@@ -175,9 +160,7 @@ internal fun Drawer(
             }
             MenuAction(label = stringResource(R.string.app_uninstall)) {
                 curated = null
-                if (!repository.requestUninstall(app.id)) {
-                    uninstallFailed = true
-                }
+                repository.requestUninstall(app.id)
             }
         }
     }
@@ -186,13 +169,6 @@ internal fun Drawer(
         Notice(
             message = stringResource(R.string.favorites_soft_cap, FavoritesSoftCap),
             onDismiss = { crowdedHome = false },
-        )
-    }
-
-    if (uninstallFailed) {
-        Notice(
-            message = stringResource(R.string.uninstall_unavailable),
-            onDismiss = { uninstallFailed = false },
         )
     }
 }

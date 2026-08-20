@@ -145,9 +145,9 @@ class AndroidLauncherRepository(
      * The platform offers no profile-aware uninstall, so this asks the system in the ordinary
      * way and lets it decide. A work app declines rather than uninstalling the personal one.
      */
-    override fun requestUninstall(appId: LauncherAppId): Boolean {
+    override fun requestUninstall(appId: LauncherAppId) {
         // A device without a package installer cannot uninstall anything.
-        return startActivitySafely(Intent(Intent.ACTION_DELETE, Uri.fromParts("package", appId.packageName, null)))
+        startActivitySafely(Intent(Intent.ACTION_DELETE, Uri.fromParts("package", appId.packageName, null)))
     }
 
     /**
@@ -263,6 +263,10 @@ class AndroidLauncherRepository(
 
     override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) {
         userDataStore.updateData { userData -> userData.settingsUpdated(update) }
+    }
+
+    override suspend fun restoreConfiguration(configuration: LauncherConfiguration) {
+        userDataStore.updateData { userData -> userData.restoring(configuration) }
     }
 
     override fun close() {

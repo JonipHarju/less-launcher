@@ -92,8 +92,8 @@ interface LauncherRepository : AutoCloseable {
     /** Opens the system's own page for [appId], where the OS explains and controls the app. */
     fun showAppInfo(appId: LauncherAppId)
 
-    /** Asks the system to uninstall [appId]. False when the request cannot be made at all. */
-    fun requestUninstall(appId: LauncherAppId): Boolean
+    /** Asks the system to uninstall [appId]. The OS, not Less, confirms it with the user. */
+    fun requestUninstall(appId: LauncherAppId)
 
     /**
      * Asks the platform to hand Less the Home Role. The OS owns the answer; Less only learns it
@@ -139,6 +139,13 @@ interface LauncherRepository : AutoCloseable {
      * changed in quick succession cannot each overwrite the other with a stale record.
      */
     suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings)
+
+    /**
+     * Puts [configuration] in place of everything stored, in one write, so that a half-read file
+     * cannot leave the launcher part one setup and part another. What the device answers for
+     * itself — how far Setup got, whether Less has held the Home Role — is left as it stands.
+     */
+    suspend fun restoreConfiguration(configuration: LauncherConfiguration)
 }
 
 internal fun Iterable<LauncherApp>.alphabetized(): List<LauncherApp> =

@@ -8,8 +8,8 @@ import com.jonipharju.less.launcher.proto.IconMode as StoredIconMode
 import com.jonipharju.less.launcher.proto.LauncherSettings as StoredLauncherSettings
 import com.jonipharju.less.launcher.proto.SetupStep as StoredSetupStep
 
-// What the launcher stores, and what it means. The translation between proto and domain
-// lives in one place so a field cannot mean one thing in the store and another on a restore.
+// What the launcher stores, and what it means. Both the store and the exported Configuration
+// read the same records, so the translation between proto and domain lives in one place.
 
 /** A Favorite as it is stored: the app it names, where it sits, and what the user calls it. */
 internal fun Favorite.toProto(): StoredFavorite =

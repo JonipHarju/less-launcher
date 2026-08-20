@@ -59,48 +59,6 @@ class HomeTest {
     }
 
     @Test
-    fun aTapThatDriftsLessThanTouchSlopStillLaunches() {
-        val repository = homeWith("Clock")
-        val clock = repository.installedApps.value.single()
-
-        compose.onNodeWithText("Clock").performTouchInput {
-            down(center)
-            moveBy(Offset(0f, viewConfiguration.touchSlop / 2f))
-            up()
-        }
-
-        compose.runOnIdle { assertEquals(listOf(clock), repository.launchedApps) }
-    }
-
-    @Test
-    fun aDragBeforeTheLongPressTimeoutScrollsHomeAndLaunchesNothing() {
-        val labels = (1..20).map { "App$it" }
-        val repository = homeWith(*labels.toTypedArray())
-
-        compose.onNodeWithText("App1").performTouchInput {
-            down(center)
-            moveBy(Offset(0f, viewConfiguration.touchSlop * 8f))
-            up()
-        }
-
-        compose.runOnIdle { assertEquals(emptyList<LauncherApp>(), repository.launchedApps) }
-        compose.onNodeWithText(labels.last()).performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
-    fun tappingATombstoneLaunchesNothingAndALongPressOpensDismissal() {
-        val repository = homeWith("Clock")
-        val clock = repository.installedApps.value.single()
-        compose.runOnIdle { repository.makeUnavailable(clock.id) }
-
-        compose.onNodeWithText("Clock").performClick()
-        compose.runOnIdle { assertEquals(emptyList<LauncherApp>(), repository.launchedApps) }
-
-        compose.onNodeWithText("Clock").performTouchInput { longClick() }
-        compose.onNodeWithText("Dismiss Tombstone").assertExists()
-    }
-
-    @Test
     fun tapsOpenSystemAppsAndLaunchFavorite() {
         runBlocking {
             val repository = FakeLauncherRepository()
@@ -205,17 +163,6 @@ class HomeTest {
 
         assertEquals(listOf(clock.id), repository.appInfoShownFor)
         assertEquals(listOf(clock.id), repository.uninstallsRequestedFor)
-    }
-
-    @Test
-    fun whenUninstallCannotBeAskedAMessageTellsTheUser() {
-        val repository = homeWith("Clock")
-        repository.uninstallsSucceed = false
-
-        compose.onNodeWithText("Clock").performTouchInput { longClick() }
-        compose.onNodeWithText("Uninstall").performClick()
-
-        compose.onNodeWithText("Nothing on this phone can uninstall that app.").assertExists()
     }
 
     @Test

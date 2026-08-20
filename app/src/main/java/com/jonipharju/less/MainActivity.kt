@@ -106,6 +106,7 @@ internal fun LessLauncher(
     val view = LocalView.current
     SideEffect {
         val window = (view.context as? Activity)?.window ?: return@SideEffect
+        window.isNavigationBarContrastEnforced = false
         val lightBars = theme.textColor.luminance() < 0.5f
         WindowCompat.getInsetsController(window, view).apply {
             isAppearanceLightStatusBars = lightBars

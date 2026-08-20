@@ -155,8 +155,6 @@ class FakeLauncherRepository : LauncherRepository {
 
     override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) = edit { it.settingsUpdated(update) }
 
-    override suspend fun restoreConfiguration(configuration: LauncherConfiguration) = edit { it.restoring(configuration) }
-
     /**
      * The one write. Every edit goes through the shared rules and is read back out through the
      * shared projections, so this holds no idea of its own about what any of them mean.

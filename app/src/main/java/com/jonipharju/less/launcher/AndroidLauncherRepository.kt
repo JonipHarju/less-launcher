@@ -265,10 +265,6 @@ class AndroidLauncherRepository(
         userDataStore.updateData { userData -> userData.settingsUpdated(update) }
     }
 
-    override suspend fun restoreConfiguration(configuration: LauncherConfiguration) {
-        userDataStore.updateData { userData -> userData.restoring(configuration) }
-    }
-
     override fun close() {
         if (isClosed) return
 

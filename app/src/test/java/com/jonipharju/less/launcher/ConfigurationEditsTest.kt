@@ -209,46 +209,4 @@ class ConfigurationEditsTest {
         assertEquals(emptyList<Favorite>(), stored.storedFavorites())
         assertEquals(emptySet<LauncherAppId>(), stored.storedHiddenApps())
     }
-
-    @Test
-    fun `restoring puts a Configuration in place of everything stored`() {
-        val before =
-            stored
-                .choosing(Favorite(browser.id, position = 0, customLabel = "Web"))
-                .hiding(clock.id)
-
-        val edited =
-            before.restoring(
-                LauncherConfiguration(
-                    favorites = listOf(Favorite(calendar.id, position = 1), Favorite(clock.id, position = 0)),
-                    hiddenApps = setOf(browser.id),
-                    settings = LauncherSettings(themeId = "parasol"),
-                ),
-            )
-
-        assertEquals(listOf(clock.id, calendar.id), edited.storedFavorites().map(Favorite::appId))
-        assertEquals(setOf(browser.id), edited.storedHiddenApps())
-        assertEquals("parasol", edited.storedSettings().themeId)
-    }
-
-    /** How far Setup got, and whether Less has held the Home Role, are the device's own answers. */
-    @Test
-    fun `restoring leaves the device's own answers as they stand`() {
-        val before =
-            stored.settingsUpdated {
-                it.copy(setupStep = SetupStep.Done, hasHeldHomeRole = true)
-            }
-
-        val edited =
-            before.restoring(
-                LauncherConfiguration(
-                    favorites = emptyList(),
-                    hiddenApps = emptySet(),
-                    settings = LauncherSettings(setupStep = SetupStep.Theme, hasHeldHomeRole = false),
-                ),
-            )
-
-        assertEquals(SetupStep.Done, edited.storedSettings().setupStep)
-        assertEquals(true, edited.storedSettings().hasHeldHomeRole)
-    }
 }

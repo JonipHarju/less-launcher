@@ -282,16 +282,20 @@ private fun <T> ChoiceGroup(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 14.dp),
+                    // The whole row is the option, marker and margins included: one target to
+                    // tap, and one selected radio button for a reader, not a glyph and a label.
+                    .semantics(mergeDescendants = true) {}
+                    .selectable(
+                        selected = isChosen,
+                        role = Role.RadioButton,
+                        onClick = { onChoose(option) },
+                    ).padding(horizontal = 24.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SelectionMarker(isChosen)
             BasicText(
                 text = label(option),
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .selectable(selected = isChosen, onClick = { onChoose(option) }),
+                modifier = Modifier.weight(1f),
                 style =
                     themedTextStyle(
                         color = if (isChosen) LocalTheme.current.textColor else LocalTheme.current.secondaryTextColor,

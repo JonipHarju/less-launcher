@@ -62,7 +62,7 @@ enum class HomeAlignment {
 }
 
 /** The boundary between launcher behavior and Android's launcher APIs. */
-interface LauncherRepository {
+interface LauncherRepository : AutoCloseable {
     val installedApps: StateFlow<List<LauncherApp>>
     val favorites: StateFlow<List<Favorite>>
 
@@ -79,6 +79,13 @@ interface LauncherRepository {
 
     /** Whether Less is the default launcher — whether the platform has given it the Home Role. */
     val holdsHomeRole: StateFlow<Boolean>
+
+    /**
+     * Less has come back to the foreground, which is the only moment it can learn what changed
+     * while the user was away. The platform announces nothing when the Home Role changes hands,
+     * and it only ever changes in the role dialog or in Settings — so this is when Less asks.
+     */
+    fun onForeground()
 
     fun launch(app: LauncherApp)
 

@@ -38,10 +38,15 @@ class FakeLauncherRepository : LauncherRepository {
     val wallpapersHung: List<Int> = mutableWallpapersHung
     val homeRoleRequests: Int get() = mutableHomeRoleRequests
 
-    /** The platform has made Less the default launcher, which Less records as the real one does. */
-    fun holdHomeRole() {
+    /** The platform has handed Less the Home Role, which Less has not asked about yet. */
+    fun grantHomeRole() {
         mutableHoldsHomeRole.value = true
-        edit { it.settingsUpdated { settings -> settings.copy(hasHeldHomeRole = true) } }
+    }
+
+    /** The platform has made Less the default launcher, and Less has come back and seen it. */
+    fun holdHomeRole() {
+        grantHomeRole()
+        onForeground()
     }
 
     /** The user has handed the Home Role to another launcher. */
@@ -97,6 +102,13 @@ class FakeLauncherRepository : LauncherRepository {
                     if (installedApp.id == app.id) app else installedApp
                 }.alphabetized()
     }
+
+    override fun onForeground() {
+        if (mutableHoldsHomeRole.value) edit(LauncherUserData::homeRoleHeld)
+    }
+
+    /** Nothing is registered with the platform, so there is nothing to unregister. */
+    override fun close() = Unit
 
     override fun launch(app: LauncherApp) {
         mutableLaunchedApps += app

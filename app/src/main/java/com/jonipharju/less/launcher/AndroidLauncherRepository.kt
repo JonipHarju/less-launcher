@@ -37,8 +37,7 @@ import java.io.IOException
 /** [LauncherRepository] backed by Android's profile-aware launcher APIs. */
 class AndroidLauncherRepository(
     context: Context,
-) : LauncherRepository,
-    AutoCloseable {
+) : LauncherRepository {
     private val context = context.applicationContext
     private val launcherApps = this.context.getSystemService(LauncherApps::class.java)
     private val userManager = this.context.getSystemService(UserManager::class.java)
@@ -112,7 +111,7 @@ class AndroidLauncherRepository(
         }
 
     init {
-        refreshHomeRole()
+        onForeground()
         launcherApps.registerCallback(launcherCallback)
         context.registerReceiver(
             profileAvailabilityReceiver,
@@ -191,18 +190,12 @@ class AndroidLauncherRepository(
             ?: candidates.firstOrNull()
     }
 
-    /**
-     * Asks the platform again whether Less is the default launcher. The OS gives no signal when
-     * the role changes hands, so the activity asks each time it comes back to the foreground.
-     */
-    fun refreshHomeRole() {
+    override fun onForeground() {
         val holdsRole = roleManager?.isRoleHeld(RoleManager.ROLE_HOME) == true
         mutableHoldsHomeRole.value = holdsRole
 
-        // Holding it once is recorded for good, so that the Drawer's prompt does not come back
-        // the day the user hands the role to another launcher.
-        if (holdsRole && !settings.value.hasHeldHomeRole) {
-            scope.launch { updateSettings { it.copy(hasHeldHomeRole = true) } }
+        if (holdsRole) {
+            scope.launch { userDataStore.updateData(LauncherUserData::homeRoleHeld) }
         }
     }
 

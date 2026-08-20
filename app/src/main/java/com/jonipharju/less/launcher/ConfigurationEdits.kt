@@ -17,6 +17,14 @@ internal fun LauncherUserData.storedHiddenApps(): Set<LauncherAppId> = hiddenApp
 
 internal fun LauncherUserData.storedSettings(): LauncherSettings = settings.toLauncherSettings()
 
+/**
+ * Records that Less holds the Home Role. Holding it once is recorded for good, so that the
+ * Drawer's standing prompt does not come back the day the user hands the role to another
+ * launcher: that is a choice, and a launcher that keeps asking is a launcher that nags.
+ */
+internal fun LauncherUserData.homeRoleHeld(): LauncherUserData =
+    if (storedSettings().hasHeldHomeRole) this else settingsUpdated { it.copy(hasHeldHomeRole = true) }
+
 /** Puts [favorite] on Home. An app already there is replaced rather than pinned twice. */
 internal fun LauncherUserData.choosing(favorite: Favorite): LauncherUserData =
     withFavorites(

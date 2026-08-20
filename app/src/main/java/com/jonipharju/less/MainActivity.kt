@@ -37,7 +37,7 @@ import java.util.Locale
 
 /** Android opens this activity when Less is selected as the default Home app. */
 class MainActivity : ComponentActivity() {
-    private lateinit var launcherRepository: AndroidLauncherRepository
+    private lateinit var launcherRepository: LauncherRepository
 
     /**
      * The manifest declares one intent filter, the home one, so every intent delivered to an
@@ -68,13 +68,9 @@ class MainActivity : ComponentActivity() {
         homeRequests.tryEmit(Unit)
     }
 
-    /**
-     * The OS announces nothing when the home role changes hands, and it only ever changes while
-     * the user is away in the role dialog or in Settings — so coming back is when Less asks.
-     */
     override fun onResume() {
         super.onResume()
-        launcherRepository.refreshHomeRole()
+        launcherRepository.onForeground()
     }
 
     override fun onDestroy() {

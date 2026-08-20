@@ -50,8 +50,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             LessLauncher(
                 repository = launcherRepository,
-                onOpenClock = { openFirstResolved(clockOpenIntents(), ::canOpen, ::startActivity) },
-                onOpenCalendar = { now -> openFirstResolved(calendarOpenIntents(now), ::canOpen, ::startActivity) },
+                onOpenClock = { open(clockOpenIntents()) },
+                onOpenCalendar = { now -> open(calendarOpenIntents(now)) },
                 homeRequests = homeRequests,
             )
         }
@@ -72,7 +72,14 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private fun canOpen(intent: Intent): Boolean = intent.resolveActivity(packageManager) != null
+    /** The device decides which of [candidates] answers; Less only asks in order. */
+    private fun open(candidates: List<Intent>): Boolean =
+        openFirstResolved(
+            candidates = candidates,
+            handlerOf = { intent -> intent.resolveActivity(packageManager)?.packageName },
+            frontDoorOf = packageManager::getLaunchIntentForPackage,
+            start = ::startActivity,
+        )
 }
 
 @Composable

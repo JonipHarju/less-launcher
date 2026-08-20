@@ -13,9 +13,11 @@
       name. Messaging and browser are MAIN activities the first filter already covers;
       dialling and the camera are not, so they are named on their own.
 
-      Tapping the clock and date tries their specific intents first, then the platform's
-      clock or calendar category. Those actions and categories are not all launchable
-      activities, so the focused queries make their handlers visible without a permission.
+      Tapping the clock tries the AlarmClock contract, alarms list then alarm setting; tapping
+      the date tries the calendar's time URI, then the platform's calendar category. Those
+      actions and categories are not launchable activities, so the focused queries make their
+      handlers visible without a permission. When a handler refuses Less, the app behind it
+      is opened by its launcher entry, which the first filter already covers.
 
       Uninstall from Curation asks the package installer to delete one package. The delete
       action is not a LAUNCHER intent, so it needs its own declaration; without it the request
@@ -36,8 +38,7 @@
             <action android:name="android.intent.action.SHOW_ALARMS" />
         </intent>
         <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.APP_CLOCK" />
+            <action android:name="android.intent.action.SET_ALARM" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />

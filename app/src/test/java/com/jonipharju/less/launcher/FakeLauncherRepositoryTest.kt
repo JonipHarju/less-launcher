@@ -2,101 +2,15 @@ package com.jonipharju.less.launcher
 
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * What the Fake stands in for: the installed-app list the platform hands over, which is never
+ * stored, and the platform calls a test cannot let happen for real. The rules it applies to the
+ * Configuration are not asserted here — they are the store's own, and [ConfigurationEditsTest]
+ * covers them where both the Fake and the phone read them from.
+ */
 class FakeLauncherRepositoryTest {
-    @Test
-    fun `settings are updated through repository`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-
-            repository.updateSettings { it.copy(iconModeOverride = IconMode.Tinted) }
-            repository.updateSettings { it.copy(homeAlignment = HomeAlignment.Centred) }
-
-            assertEquals(
-                LauncherSettings(iconModeOverride = IconMode.Tinted, homeAlignment = HomeAlignment.Centred),
-                repository.settings.value,
-            )
-        }
-
-    @Test
-    fun `chosen Favorites appear in position order`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            val calendar = launcherAppFixture(label = "Calendar")
-
-            repository.chooseFavorite(Favorite(clock.id, position = 1, customLabel = "Time"))
-            repository.chooseFavorite(Favorite(calendar.id, position = 0))
-
-            assertEquals(
-                listOf(
-                    Favorite(calendar.id, position = 0),
-                    Favorite(clock.id, position = 1, customLabel = "Time"),
-                ),
-                repository.favorites.value,
-            )
-        }
-
-    @Test
-    fun `reordering Favorites rewrites their positions and keeps their labels`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            val calendar = launcherAppFixture(label = "Calendar")
-            repository.chooseFavorite(Favorite(clock.id, position = 0, customLabel = "Time"))
-            repository.chooseFavorite(Favorite(calendar.id, position = 1))
-
-            repository.reorderFavorites(listOf(calendar.id, clock.id))
-
-            assertEquals(
-                listOf(
-                    Favorite(calendar.id, position = 0),
-                    Favorite(clock.id, position = 1, customLabel = "Time"),
-                ),
-                repository.favorites.value,
-            )
-        }
-
-    @Test
-    fun `renaming a Favorite leaves its position alone`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            repository.chooseFavorite(Favorite(clock.id, position = 3))
-
-            val renamed =
-                repository.favorites.value
-                    .single()
-                    .copy(customLabel = "Time")
-            repository.chooseFavorite(renamed)
-
-            assertEquals(listOf(Favorite(clock.id, position = 3, customLabel = "Time")), repository.favorites.value)
-        }
-
-    @Test
-    fun `pinning past the soft cap still adds the Favorite`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            repeat(FavoritesSoftCap) { index ->
-                val app = launcherAppFixture(label = "App$index")
-                repository.chooseFavorite(repository.favorites.value.pinning(app.id))
-            }
-            val ninth = launcherAppFixture(label = "Ninth")
-
-            repository.chooseFavorite(repository.favorites.value.pinning(ninth.id))
-
-            assertEquals(FavoritesSoftCap + 1, repository.favorites.value.size)
-            assertTrue(repository.favorites.value.exceedSoftCap())
-            assertEquals(
-                ninth.id,
-                repository.favorites.value
-                    .last()
-                    .appId,
-            )
-        }
-
     @Test
     fun `app info and uninstall are asked of the system`() {
         val repository = FakeLauncherRepository()
@@ -130,17 +44,20 @@ class FakeLauncherRepositoryTest {
         assertEquals(emptyList<LauncherApp>(), repository.installedApps.value)
     }
 
+    /** An uninstall reaches the stored Configuration, rather than only the list of apps. */
     @Test
-    fun `uninstalling an app removes its Favorite`() =
+    fun `uninstalling an app puts the forgetting rule to the Configuration`() =
         runBlocking {
             val repository = FakeLauncherRepository()
             val app = launcherAppFixture(label = "Clock")
             repository.install(app)
             repository.chooseFavorite(Favorite(app.id, position = 0))
+            repository.hideApp(app.id)
 
             repository.uninstall(app.id)
 
             assertEquals(emptyList<Favorite>(), repository.favorites.value)
+            assertEquals(emptySet<LauncherAppId>(), repository.hiddenApps.value)
         }
 
     @Test
@@ -167,6 +84,35 @@ class FakeLauncherRepositoryTest {
             repository.makeAvailable(app)
 
             assertEquals(emptyList<Favorite>(), repository.favorites.value)
+        }
+
+    @Test
+    fun `an unavailable app stays hidden until it returns`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            repository.install(clock)
+            repository.hideApp(clock.id)
+
+            repository.makeUnavailable(clock.id)
+            repository.makeAvailable(clock)
+
+            assertEquals(setOf(clock.id), repository.hiddenApps.value)
+        }
+
+    @Test
+    fun `a hidden app stays installed and drops out of the Drawer's listing`() =
+        runBlocking {
+            val repository = FakeLauncherRepository()
+            val clock = launcherAppFixture(label = "Clock")
+            val camera = launcherAppFixture(label = "Camera")
+            repository.install(clock)
+            repository.install(camera)
+
+            repository.hideApp(clock.id)
+
+            assertEquals(listOf(camera, clock), repository.installedApps.value)
+            assertEquals(listOf(camera), repository.installedApps.value.withoutHidden(repository.hiddenApps.value))
         }
 
     @Test
@@ -202,87 +148,4 @@ class FakeLauncherRepositoryTest {
 
         assertEquals(listOf(app), repository.launchedApps)
     }
-
-    @Test
-    fun `a hidden app stays installed and drops out of the Drawer's listing`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            val camera = launcherAppFixture(label = "Camera")
-            repository.install(clock)
-            repository.install(camera)
-
-            repository.hideApp(clock.id)
-
-            assertEquals(setOf(clock.id), repository.hiddenApps.value)
-            assertEquals(listOf(camera, clock), repository.installedApps.value)
-            assertEquals(listOf(camera), repository.installedApps.value.withoutHidden(repository.hiddenApps.value))
-        }
-
-    @Test
-    fun `unhiding an app returns it to the Drawer's listing`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            repository.install(clock)
-            repository.hideApp(clock.id)
-
-            repository.unhideApp(clock.id)
-
-            assertEquals(emptySet<LauncherAppId>(), repository.hiddenApps.value)
-            assertEquals(listOf(clock), repository.installedApps.value.withoutHidden(repository.hiddenApps.value))
-        }
-
-    @Test
-    fun `hiding an app twice hides it once`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            repository.install(clock)
-
-            repository.hideApp(clock.id)
-            repository.hideApp(clock.id)
-
-            assertEquals(setOf(clock.id), repository.hiddenApps.value)
-        }
-
-    @Test
-    fun `hiding a Favorite leaves it on Home`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            repository.install(clock)
-            repository.chooseFavorite(Favorite(clock.id, position = 0))
-
-            repository.hideApp(clock.id)
-
-            assertEquals(listOf(Favorite(clock.id, position = 0)), repository.favorites.value)
-        }
-
-    @Test
-    fun `uninstalling a hidden app forgets that it was hidden`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            repository.install(clock)
-            repository.hideApp(clock.id)
-
-            repository.uninstall(clock.id)
-
-            assertEquals(emptySet<LauncherAppId>(), repository.hiddenApps.value)
-        }
-
-    @Test
-    fun `an unavailable app stays hidden until it returns`() =
-        runBlocking {
-            val repository = FakeLauncherRepository()
-            val clock = launcherAppFixture(label = "Clock")
-            repository.install(clock)
-            repository.hideApp(clock.id)
-
-            repository.makeUnavailable(clock.id)
-            repository.makeAvailable(clock)
-
-            assertEquals(setOf(clock.id), repository.hiddenApps.value)
-        }
 }

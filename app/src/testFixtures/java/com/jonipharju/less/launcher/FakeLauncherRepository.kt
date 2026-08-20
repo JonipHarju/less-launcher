@@ -1,9 +1,16 @@
 package com.jonipharju.less.launcher
 
+import com.jonipharju.less.launcher.proto.LauncherUserData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/**
+ * A [LauncherRepository] holding the same stored record a phone holds, edited through the same
+ * rules. What it stands in for is the platform: the app list is put there by the test rather
+ * than by `LauncherApps`, and launching an app records it instead of starting one.
+ */
 class FakeLauncherRepository : LauncherRepository {
+    private val mutableStoredData = MutableStateFlow(LauncherUserData.getDefaultInstance())
     private val mutableInstalledApps = MutableStateFlow<List<LauncherApp>>(emptyList())
     private val mutableFavorites = MutableStateFlow<List<Favorite>>(emptyList())
     private val mutableHiddenApps = MutableStateFlow<Set<LauncherAppId>>(emptySet())
@@ -30,7 +37,7 @@ class FakeLauncherRepository : LauncherRepository {
     /** The platform has made Less the default launcher, which Less records as the real one does. */
     fun holdHomeRole() {
         mutableHoldsHomeRole.value = true
-        mutableSettings.value = mutableSettings.value.copy(hasHeldHomeRole = true)
+        edit { it.settingsUpdated { settings -> settings.copy(hasHeldHomeRole = true) } }
     }
 
     /** The user has handed the Home Role to another launcher. */
@@ -50,7 +57,7 @@ class FakeLauncherRepository : LauncherRepository {
 
     /** The user has been through Setup, which is where every surface but Setup begins. */
     fun finishSetup() {
-        mutableSettings.value = mutableSettings.value.copy(setupStep = SetupStep.Done)
+        edit { it.settingsUpdated { settings -> settings.copy(setupStep = SetupStep.Done) } }
     }
 
     /** The device answers [intent] with [appId]. */
@@ -65,10 +72,10 @@ class FakeLauncherRepository : LauncherRepository {
         mutableInstalledApps.value = (mutableInstalledApps.value + app).alphabetized()
     }
 
+    /** The package goes, and what the store does about that is the rule the phone applies. */
     fun uninstall(appId: LauncherAppId) {
         mutableInstalledApps.value = mutableInstalledApps.value.filterNot { it.id == appId }
-        mutableFavorites.value = mutableFavorites.value.filterNot { it.appId == appId }
-        mutableHiddenApps.value = mutableHiddenApps.value - appId
+        edit { it.forgetting(appId.packageName, appId.profileSerialNumber) }
     }
 
     fun makeUnavailable(appId: LauncherAppId) {
@@ -105,36 +112,30 @@ class FakeLauncherRepository : LauncherRepository {
 
     override fun appAnswering(intent: EverydayIntent): LauncherAppId? = everydayApps[intent]
 
-    override suspend fun chooseFavorite(favorite: Favorite) {
-        mutableFavorites.value =
-            (mutableFavorites.value.filterNot { it.appId == favorite.appId } + favorite)
-                .sortedBy(Favorite::position)
-    }
+    override suspend fun chooseFavorite(favorite: Favorite) = edit { it.choosing(favorite) }
 
-    override suspend fun dismissFavorite(appId: LauncherAppId) {
-        mutableFavorites.value = mutableFavorites.value.filterNot { it.appId == appId }
-    }
+    override suspend fun dismissFavorite(appId: LauncherAppId) = edit { it.dismissing(appId) }
 
-    override suspend fun hideApp(appId: LauncherAppId) {
-        mutableHiddenApps.value = mutableHiddenApps.value + appId
-    }
+    override suspend fun hideApp(appId: LauncherAppId) = edit { it.hiding(appId) }
 
-    override suspend fun unhideApp(appId: LauncherAppId) {
-        mutableHiddenApps.value = mutableHiddenApps.value - appId
-    }
+    override suspend fun unhideApp(appId: LauncherAppId) = edit { it.unhiding(appId) }
 
-    override suspend fun reorderFavorites(order: List<LauncherAppId>) {
-        mutableFavorites.value = mutableFavorites.value.orderedBy(order)
-    }
+    override suspend fun reorderFavorites(order: List<LauncherAppId>) = edit { it.reordered(order) }
 
-    override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) {
-        mutableSettings.value = update(mutableSettings.value)
-    }
+    override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) = edit { it.settingsUpdated(update) }
 
-    override suspend fun restoreConfiguration(configuration: LauncherConfiguration) {
-        mutableFavorites.value = configuration.favoritesInOrder()
-        mutableHiddenApps.value = configuration.hiddenApps
-        mutableSettings.value = configuration.settingsRestoredOnto(mutableSettings.value)
+    override suspend fun restoreConfiguration(configuration: LauncherConfiguration) = edit { it.restoring(configuration) }
+
+    /**
+     * The one write. Every edit goes through the shared rules and is read back out through the
+     * shared projections, so this holds no idea of its own about what any of them mean.
+     */
+    private fun edit(change: (LauncherUserData) -> LauncherUserData) {
+        val stored = change(mutableStoredData.value)
+        mutableStoredData.value = stored
+        mutableFavorites.value = stored.storedFavorites()
+        mutableHiddenApps.value = stored.storedHiddenApps()
+        mutableSettings.value = stored.storedSettings()
     }
 }
 

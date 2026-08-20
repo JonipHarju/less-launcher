@@ -16,8 +16,7 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
 import android.provider.Settings
-import com.jonipharju.less.launcher.proto.StoredFavorite
-import com.jonipharju.less.launcher.proto.StoredHiddenApp
+import com.jonipharju.less.launcher.proto.LauncherUserData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,15 +50,15 @@ class AndroidLauncherRepository(
     override val holdsHomeRole = mutableHoldsHomeRole.asStateFlow()
     override val favorites =
         userDataStore.data
-            .map { userData -> userData.favoritesList.map(StoredFavorite::toFavorite).sortedBy(Favorite::position) }
+            .map(LauncherUserData::storedFavorites)
             .stateIn(scope, SharingStarted.Eagerly, emptyList())
     override val hiddenApps =
         userDataStore.data
-            .map { userData -> userData.hiddenAppsList.map(StoredHiddenApp::toAppId).toSet() }
+            .map(LauncherUserData::storedHiddenApps)
             .stateIn(scope, SharingStarted.Eagerly, emptySet())
     override val settings =
         userDataStore.data
-            .map { userData -> userData.settings.toLauncherSettings() }
+            .map(LauncherUserData::storedSettings)
             .onEach { mutableHasReadStoredSettings.value = true }
             .stateIn(scope, SharingStarted.Eagerly, LauncherSettings())
     override val hasReadStoredSettings = mutableHasReadStoredSettings.asStateFlow()
@@ -203,31 +202,14 @@ class AndroidLauncherRepository(
     }
 
     override suspend fun chooseFavorite(favorite: Favorite) {
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(
-                    (userData.favoritesList.filterNot { it.hasSameAppIdAs(favorite.appId) } + favorite.toProto())
-                        .sortedBy(StoredFavorite::getPosition),
-                ).build()
-        }
+        userDataStore.updateData { userData -> userData.choosing(favorite) }
     }
 
     override suspend fun dismissFavorite(appId: LauncherAppId) {
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(userData.favoritesList.filterNot { it.hasSameAppIdAs(appId) })
-                .build()
-        }
+        userDataStore.updateData { userData -> userData.dismissing(appId) }
     }
 
-    /**
-     * An uninstalled app leaves nothing behind: no Favorite, because that removal was
-     * intentional, and no record that it was hidden, because there is no longer anything to hide.
-     */
+    /** The platform names the package that went; what that leaves behind is the same everywhere. */
     private suspend fun forgetUninstalledPackage(
         packageName: String,
         user: UserHandle,
@@ -235,82 +217,27 @@ class AndroidLauncherRepository(
         val profileSerialNumber = userManager.getSerialNumberForUser(user)
         if (profileSerialNumber < 0) return
 
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(
-                    userData.favoritesList.filterNot { favorite ->
-                        favorite.packageName == packageName &&
-                            favorite.profileSerialNumber == profileSerialNumber
-                    },
-                ).clearHiddenApps()
-                .addAllHiddenApps(
-                    userData.hiddenAppsList.filterNot { hiddenApp ->
-                        hiddenApp.packageName == packageName &&
-                            hiddenApp.profileSerialNumber == profileSerialNumber
-                    },
-                ).build()
-        }
+        userDataStore.updateData { userData -> userData.forgetting(packageName, profileSerialNumber) }
     }
 
     override suspend fun hideApp(appId: LauncherAppId) {
-        userDataStore.updateData { userData ->
-            if (userData.hiddenAppsList.any { it.toAppId() == appId }) {
-                userData
-            } else {
-                userData.toBuilder().addHiddenApps(appId.toStoredHiddenApp()).build()
-            }
-        }
+        userDataStore.updateData { userData -> userData.hiding(appId) }
     }
 
     override suspend fun unhideApp(appId: LauncherAppId) {
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearHiddenApps()
-                .addAllHiddenApps(userData.hiddenAppsList.filterNot { it.toAppId() == appId })
-                .build()
-        }
+        userDataStore.updateData { userData -> userData.unhiding(appId) }
     }
 
     override suspend fun reorderFavorites(order: List<LauncherAppId>) {
-        userDataStore.updateData { userData ->
-            val reordered =
-                userData.favoritesList
-                    .map(StoredFavorite::toFavorite)
-                    .orderedBy(order)
-                    .map(Favorite::toProto)
-
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(reordered)
-                .build()
-        }
+        userDataStore.updateData { userData -> userData.reordered(order) }
     }
 
     override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) {
-        userDataStore.updateData { userData ->
-            val updated = update(userData.settings.toLauncherSettings())
-            userData.toBuilder().setSettings(updated.mergedInto(userData.settings)).build()
-        }
+        userDataStore.updateData { userData -> userData.settingsUpdated(update) }
     }
 
     override suspend fun restoreConfiguration(configuration: LauncherConfiguration) {
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(configuration.favoritesInOrder().map(Favorite::toProto))
-                .clearHiddenApps()
-                .addAllHiddenApps(configuration.hiddenApps.map(LauncherAppId::toStoredHiddenApp))
-                .setSettings(
-                    configuration
-                        .settingsRestoredOnto(userData.settings.toLauncherSettings())
-                        .mergedInto(userData.settings),
-                ).build()
-        }
+        userDataStore.updateData { userData -> userData.restoring(configuration) }
     }
 
     override fun close() {

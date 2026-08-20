@@ -44,6 +44,11 @@ internal fun StoredFavorite.hasSameAppIdAs(appId: LauncherAppId) =
         activityName == appId.activityName &&
         profileSerialNumber == appId.profileSerialNumber
 
+internal fun StoredHiddenApp.hasSameAppIdAs(appId: LauncherAppId) =
+    packageName == appId.packageName &&
+        activityName == appId.activityName &&
+        profileSerialNumber == appId.profileSerialNumber
+
 /** Every unset field falls back to the default the domain type declares, not to a repeated literal. */
 internal fun StoredLauncherSettings.toLauncherSettings(): LauncherSettings {
     val defaults = LauncherSettings()

@@ -3,6 +3,7 @@ package com.jonipharju.less
 import androidx.compose.ui.graphics.Color
 import com.jonipharju.less.launcher.DefaultThemeId
 import com.jonipharju.less.launcher.IconMode
+import com.jonipharju.less.launcher.LauncherSettings
 
 internal val NearBlackTheme =
     Theme(
@@ -166,3 +167,6 @@ internal val Themes: List<Theme> =
     )
 
 internal fun themeById(id: String): Theme = Themes.firstOrNull { it.id == id } ?: NearBlackTheme
+
+/** The Theme the user's settings name — the one every surface wears. */
+internal fun LauncherSettings.theme(): Theme = themeById(themeId)

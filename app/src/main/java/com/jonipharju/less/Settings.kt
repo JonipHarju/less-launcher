@@ -47,7 +47,6 @@ import kotlinx.coroutines.launch
 internal fun Settings(
     repository: LauncherRepository,
     onClose: () -> Unit,
-    onApplyWallpaper: (Theme) -> Unit = {},
 ) {
     val settings by repository.settings.collectAsState()
     val scope = rememberCoroutineScope()
@@ -70,7 +69,7 @@ internal fun Settings(
         }
 
         GroupTitle(stringResource(R.string.settings_themes))
-        ThemePicker(repository = repository, onApplyWallpaper = onApplyWallpaper)
+        ThemePicker(repository = repository)
 
         ChoiceGroup(
             title = stringResource(R.string.settings_drawer_opens),
@@ -324,13 +323,10 @@ private fun OnOff(
 
 /** The Credit is the picker: artist, title, year, collection, source — not a swatch. */
 @Composable
-internal fun ThemePicker(
-    repository: LauncherRepository,
-    onApplyWallpaper: (Theme) -> Unit,
-) {
+internal fun ThemePicker(repository: LauncherRepository) {
     val settings by repository.settings.collectAsState()
     val scope = rememberCoroutineScope()
-    val chosen = themeById(settings.themeId)
+    val chosen = settings.theme()
     val colors = LocalTheme.current
 
     Themes.forEach { option ->
@@ -345,8 +341,7 @@ internal fun ThemePicker(
                         selected = isChosen,
                         role = Role.RadioButton,
                         onClick = {
-                            scope.launch { repository.updateSettings { it.copy(themeId = option.id) } }
-                            onApplyWallpaper(option)
+                            scope.launch { repository.chooseTheme(option.id, option.wallpaperAsset) }
                         },
                     ).padding(horizontal = 24.dp, vertical = 14.dp),
         ) {

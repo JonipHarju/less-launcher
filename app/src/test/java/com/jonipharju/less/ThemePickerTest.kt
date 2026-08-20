@@ -36,18 +36,15 @@ class ThemePickerTest {
     }
 
     @Test
-    fun pickingAThemeStoresItAndAppliesItsWallpaper() {
+    fun pickingAThemeStoresItAndHangsItsWallpaper() {
         val repository = FakeLauncherRepository()
-        val applied = mutableListOf<Theme>()
-        compose.setContent {
-            Settings(repository, onClose = {}, onApplyWallpaper = { applied += it })
-        }
+        compose.setContent { Settings(repository, onClose = {}) }
 
         compose.onNodeWithText("Claude Monet").performScrollTo().performClick()
 
         compose.runOnIdle {
             assertEquals("parasol", repository.settings.value.themeId)
-            assertEquals(listOf(ParasolTheme), applied)
+            assertEquals(listOf(ParasolTheme.wallpaperAsset), repository.wallpapersHung)
         }
         compose.onNodeWithText("Claude Monet").assertIsSelected()
     }

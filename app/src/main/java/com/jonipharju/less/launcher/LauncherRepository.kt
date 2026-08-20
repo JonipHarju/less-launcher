@@ -1,5 +1,6 @@
 package com.jonipharju.less.launcher
 
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.flow.StateFlow
 
@@ -61,7 +62,7 @@ enum class HomeAlignment {
 }
 
 /** The boundary between launcher behavior and Android's launcher APIs. */
-interface LauncherRepository {
+interface LauncherRepository : AutoCloseable {
     val installedApps: StateFlow<List<LauncherApp>>
     val favorites: StateFlow<List<Favorite>>
 
@@ -78,6 +79,13 @@ interface LauncherRepository {
 
     /** Whether Less is the default launcher — whether the platform has given it the Home Role. */
     val holdsHomeRole: StateFlow<Boolean>
+
+    /**
+     * Less has come back to the foreground, which is the only moment it can learn what changed
+     * while the user was away. The platform announces nothing when the Home Role changes hands,
+     * and it only ever changes in the role dialog or in Settings — so this is when Less asks.
+     */
+    fun onForeground()
 
     fun launch(app: LauncherApp)
 
@@ -99,6 +107,16 @@ interface LauncherRepository {
      * Favorites that exist on the device in front of it.
      */
     fun appAnswering(intent: EverydayIntent): LauncherAppId?
+
+    /**
+     * Records [themeId] as the user's Theme and hangs [wallpaperAsset] as the Wallpaper, so that
+     * a Theme is never chosen by halves. The Theme is recorded either way: a system that refuses
+     * the Wallpaper write leaves Home themed and the wall as it was.
+     */
+    suspend fun chooseTheme(
+        themeId: String,
+        @DrawableRes wallpaperAsset: Int,
+    )
 
     suspend fun chooseFavorite(favorite: Favorite)
 

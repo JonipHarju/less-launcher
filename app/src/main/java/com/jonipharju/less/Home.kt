@@ -17,27 +17,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jonipharju.less.launcher.HomeAlignment
 import com.jonipharju.less.launcher.IconMode
-import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.ShownFavorite
 import com.jonipharju.less.launcher.VerticalSwipe
-import com.jonipharju.less.launcher.moved
 import com.jonipharju.less.launcher.opensDrawer
 import com.jonipharju.less.launcher.renamedTo
 import com.jonipharju.less.launcher.shownAmong
@@ -64,14 +57,8 @@ internal fun Home(
     val theme = LocalTheme.current
     val iconMode = effectiveIconMode(theme, settings.iconModeOverride)
 
-    var curated by remember { mutableStateOf<LauncherAppId?>(null) }
-    var renaming by remember { mutableStateOf<LauncherAppId?>(null) }
-
-    val pinned = favorites.shownAmong(installedApps)
-    // While a drag is in flight Home shows the order the finger is describing, not the stored
-    // one, so the list rearranges under the finger rather than after it lets go.
-    var draggedOrder by remember { mutableStateOf<List<LauncherAppId>?>(null) }
-    val shown = draggedOrder?.let(pinned::inTheOrderOf) ?: pinned
+    val curation = rememberFavoriteCuration()
+    val home = curation.state(favorites.shownAmong(installedApps))
 
     val openDrawerOnSwipe: (VerticalSwipe) -> Unit = { swipe ->
         if (drawerOpenDirection.opensDrawer(swipe)) onOpenDrawer()
@@ -119,7 +106,7 @@ internal fun Home(
                         shadow = textHalo(theme.secondaryTextColor),
                     ),
             )
-            shown.forEach { shownFavorite ->
+            home.shown.forEach { shownFavorite ->
                 // Keyed by the app rather than by the row it currently occupies, so that a row
                 // being dragged keeps its identity — and with it the live touch — as it moves.
                 key(shownFavorite.favorite.appId) {
@@ -127,7 +114,7 @@ internal fun Home(
                         TombstoneRow(
                             shownFavorite = shownFavorite,
                             textAlign = textAlign,
-                            onDismiss = { curated = shownFavorite.favorite.appId },
+                            onDismiss = { curation.curate(shownFavorite.favorite.appId) },
                         )
                     } else {
                         FavoriteRow(
@@ -136,20 +123,9 @@ internal fun Home(
                             rowArrangement = rowArrangement,
                             iconMode = iconMode,
                             onLaunch = { repository.launch(shownFavorite.app) },
-                            onCurate = { curated = shownFavorite.favorite.appId },
-                            onDragBy = { rows ->
-                                val order = draggedOrder ?: shown.map { it.favorite.appId }
-                                val from = order.indexOf(shownFavorite.favorite.appId)
-                                draggedOrder = order.moved(from, (from + rows).coerceIn(order.indices))
-                            },
-                            onDragEnd = {
-                                draggedOrder?.let { order ->
-                                    scope.launch {
-                                        repository.reorderFavorites(order)
-                                        draggedOrder = null
-                                    }
-                                }
-                            },
+                            onCurate = { curation.curate(shownFavorite.favorite.appId) },
+                            onDrag = { travelled -> curation.draggedBy(shownFavorite.favorite.appId, travelled, home.shown) },
+                            onDragEnd = { scope.launch { curation.dragEnded(repository::reorderFavorites) } },
                         )
                     }
                 }
@@ -157,47 +133,44 @@ internal fun Home(
         }
     }
 
-    shown.withId(curated)?.let { shownFavorite ->
+    home.curated?.let { shownFavorite ->
         if (shownFavorite.app == null) {
             TombstoneMenu(
                 shownFavorite = shownFavorite,
-                onDismiss = { curated = null },
+                onDismiss = curation::dismissMenu,
                 onDismissTombstone = {
-                    curated = null
+                    curation.dismissMenu()
                     scope.launch { repository.dismissFavorite(shownFavorite.favorite.appId) }
                 },
             )
         } else {
             FavoriteMenu(
                 shownFavorite = shownFavorite,
-                onDismiss = { curated = null },
-                onRename = {
-                    curated = null
-                    renaming = shownFavorite.favorite.appId
-                },
+                onDismiss = curation::dismissMenu,
+                onRename = curation::renameCurated,
                 onUnpin = {
-                    curated = null
+                    curation.dismissMenu()
                     scope.launch { repository.dismissFavorite(shownFavorite.favorite.appId) }
                 },
                 onShowAppInfo = {
-                    curated = null
+                    curation.dismissMenu()
                     repository.showAppInfo(shownFavorite.favorite.appId)
                 },
                 onUninstall = {
-                    curated = null
+                    curation.dismissMenu()
                     repository.requestUninstall(shownFavorite.favorite.appId)
                 },
             )
         }
     }
 
-    shown.withId(renaming)?.let { shownFavorite ->
+    home.renaming?.let { shownFavorite ->
         RenameDialog(
             appLabel = shownFavorite.appLabel,
             currentLabel = shownFavorite.label,
-            onDismiss = { renaming = null },
+            onDismiss = curation::dismissRename,
             onRename = { name ->
-                renaming = null
+                curation.dismissRename()
                 scope.launch { repository.chooseFavorite(shownFavorite.favorite.renamedTo(name)) }
             },
         )
@@ -242,14 +215,9 @@ private fun FavoriteRow(
     iconMode: IconMode,
     onLaunch: () -> Unit,
     onCurate: () -> Unit,
-    onDragBy: (Int) -> Unit,
+    onDrag: (Float) -> Unit,
     onDragEnd: () -> Unit,
 ) {
-    val rowHeight = with(LocalDensity.current) { FavoriteRowHeight.toPx() }
-    // A drag only moves the Favorite once it has covered a whole row; what it covers on the
-    // way there is carried into the next row rather than thrown away.
-    var carry by remember { mutableFloatStateOf(0f) }
-
     Row(
         modifier =
             Modifier
@@ -258,22 +226,9 @@ private fun FavoriteRow(
                 .onTapLongPressOrDrag(
                     key = shownFavorite.favorite.appId,
                     onTap = onLaunch,
-                    onLongPress = {
-                        carry = 0f
-                        onCurate()
-                    },
-                    onDrag = { travelled ->
-                        carry += travelled
-                        val rows = (carry / rowHeight).toInt()
-                        if (rows != 0) {
-                            carry -= rows * rowHeight
-                            onDragBy(rows)
-                        }
-                    },
-                    onDragEnd = {
-                        carry = 0f
-                        onDragEnd()
-                    },
+                    onLongPress = onCurate,
+                    onDrag = onDrag,
+                    onDragEnd = onDragEnd,
                 ),
         horizontalArrangement = rowArrangement,
         verticalAlignment = Alignment.CenterVertically,
@@ -317,15 +272,6 @@ private fun TombstoneMenu(
         MenuAction(label = stringResource(R.string.tombstone_dismiss), onClick = onDismissTombstone)
     }
 }
-
-/** The shown Favorite [appId] names, or null where it names none. */
-private fun List<ShownFavorite>.withId(appId: LauncherAppId?): ShownFavorite? = firstOrNull { it.favorite.appId == appId }
-
-/** The same Favorites arranged as [order] has them, for the length of a drag. */
-private fun List<ShownFavorite>.inTheOrderOf(order: List<LauncherAppId>): List<ShownFavorite> =
-    sortedBy { shownFavorite ->
-        order.indexOf(shownFavorite.favorite.appId).takeUnless { it == -1 } ?: order.size
-    }
 
 private fun HomeAlignment.asHorizontalAlignment() =
     when (this) {

@@ -67,6 +67,30 @@ class HomeRolePromptTest {
         compose.onNodeWithText(prompt).assertDoesNotExist()
     }
 
+    /**
+     * The platform announces nothing when the role changes hands, so what ends the prompt is
+     * Less coming back to the foreground and asking — not the moment the user answered.
+     */
+    @Test
+    fun comingBackHoldingTheRoleEndsThePromptForGood() {
+        val repository = FakeLauncherRepository()
+        drawerOf(repository)
+        compose.onNodeWithText(prompt).assertExists()
+
+        compose.runOnIdle {
+            repository.grantHomeRole()
+            repository.onForeground()
+        }
+        compose.onNodeWithText(prompt).assertDoesNotExist()
+
+        compose.runOnIdle {
+            repository.releaseHomeRole()
+            repository.onForeground()
+        }
+
+        compose.onNodeWithText(prompt).assertDoesNotExist()
+    }
+
     @Test
     fun aLauncherThatAlreadyHoldsTheRoleNeverAsks() {
         val repository = FakeLauncherRepository()

@@ -1,11 +1,9 @@
 package com.jonipharju.less
 
 import android.app.Activity
-import android.app.WallpaperManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.icu.text.DateFormat
 import android.net.Uri
 import android.os.Bundle
@@ -27,23 +25,19 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.lifecycleScope
 import com.jonipharju.less.launcher.AndroidLauncherRepository
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.isRunning
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.launch
-import java.io.IOException
 import java.util.Date
 import java.util.Locale
 
 /** Android opens this activity when Less is selected as the default Home app. */
 class MainActivity : ComponentActivity() {
-    private lateinit var launcherRepository: AndroidLauncherRepository
+    private lateinit var launcherRepository: LauncherRepository
 
     /**
      * The manifest declares one intent filter, the home one, so every intent delivered to an
@@ -65,9 +59,6 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 homeRequests = homeRequests,
-                onApplyWallpaper = { theme ->
-                    lifecycleScope.launch(Dispatchers.IO) { applyThemeWallpaper(theme) }
-                },
             )
         }
     }
@@ -77,32 +68,14 @@ class MainActivity : ComponentActivity() {
         homeRequests.tryEmit(Unit)
     }
 
-    /**
-     * The OS announces nothing when the home role changes hands, and it only ever changes while
-     * the user is away in the role dialog or in Settings — so coming back is when Less asks.
-     */
     override fun onResume() {
         super.onResume()
-        launcherRepository.refreshHomeRole()
+        launcherRepository.onForeground()
     }
 
     override fun onDestroy() {
         launcherRepository.close()
         super.onDestroy()
-    }
-
-    private fun applyThemeWallpaper(theme: Theme) {
-        val wallpaper = BitmapFactory.decodeResource(resources, theme.wallpaperAsset) ?: return
-        try {
-            WallpaperManager.getInstance(applicationContext).setBitmap(
-                wallpaper,
-                null,
-                true,
-                WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK,
-            )
-        } catch (_: IOException) {
-            // The system can refuse a wallpaper write; picking the Theme already succeeded.
-        }
     }
 
     private fun startActivitySafely(intent: Intent) {
@@ -120,7 +93,6 @@ internal fun LessLauncher(
     onOpenClock: () -> Unit = {},
     onOpenCalendar: (Long) -> Unit = {},
     homeRequests: Flow<Unit> = emptyFlow(),
-    onApplyWallpaper: (Theme) -> Unit = {},
 ) {
     var surface by remember { mutableStateOf(LauncherSurface.Home) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -130,7 +102,7 @@ internal fun LessLauncher(
     // A launcher that has run before must not flash Setup on the way in: until the store has
     // answered, `settings` is only defaults, and one of those defaults is that Setup never ran.
     val inSetup = hasReadStoredSettings && settings.setupStep.isRunning()
-    val theme = themeById(settings.themeId)
+    val theme = settings.theme()
     val view = LocalView.current
     SideEffect {
         val window = (view.context as? Activity)?.window ?: return@SideEffect
@@ -165,7 +137,7 @@ internal fun LessLauncher(
         if (!hasReadStoredSettings) {
             // The Scrim over the Wallpaper, and nothing else, for the frames it takes to read.
         } else if (inSetup) {
-            Setup(repository = repository, onApplyWallpaper = onApplyWallpaper)
+            Setup(repository = repository)
         } else {
             when (surface) {
                 LauncherSurface.Home ->
@@ -187,7 +159,6 @@ internal fun LessLauncher(
                     Settings(
                         repository = repository,
                         onClose = { surface = LauncherSurface.Drawer },
-                        onApplyWallpaper = onApplyWallpaper,
                     )
             }
         }

@@ -1,5 +1,6 @@
 package com.jonipharju.less.launcher
 
+import android.app.WallpaperManager
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
@@ -9,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Process
@@ -16,10 +18,10 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
 import android.provider.Settings
-import com.jonipharju.less.launcher.proto.StoredFavorite
-import com.jonipharju.less.launcher.proto.StoredHiddenApp
+import com.jonipharju.less.launcher.proto.LauncherUserData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,12 +31,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
 
 /** [LauncherRepository] backed by Android's profile-aware launcher APIs. */
 class AndroidLauncherRepository(
     context: Context,
-) : LauncherRepository,
-    AutoCloseable {
+) : LauncherRepository {
     private val context = context.applicationContext
     private val launcherApps = this.context.getSystemService(LauncherApps::class.java)
     private val userManager = this.context.getSystemService(UserManager::class.java)
@@ -51,15 +54,15 @@ class AndroidLauncherRepository(
     override val holdsHomeRole = mutableHoldsHomeRole.asStateFlow()
     override val favorites =
         userDataStore.data
-            .map { userData -> userData.favoritesList.map(StoredFavorite::toFavorite).sortedBy(Favorite::position) }
+            .map(LauncherUserData::storedFavorites)
             .stateIn(scope, SharingStarted.Eagerly, emptyList())
     override val hiddenApps =
         userDataStore.data
-            .map { userData -> userData.hiddenAppsList.map(StoredHiddenApp::toAppId).toSet() }
+            .map(LauncherUserData::storedHiddenApps)
             .stateIn(scope, SharingStarted.Eagerly, emptySet())
     override val settings =
         userDataStore.data
-            .map { userData -> userData.settings.toLauncherSettings() }
+            .map(LauncherUserData::storedSettings)
             .onEach { mutableHasReadStoredSettings.value = true }
             .stateIn(scope, SharingStarted.Eagerly, LauncherSettings())
     override val hasReadStoredSettings = mutableHasReadStoredSettings.asStateFlow()
@@ -187,47 +190,55 @@ class AndroidLauncherRepository(
             ?: candidates.firstOrNull()
     }
 
-    /**
-     * Asks the platform again whether Less is the default launcher. The OS gives no signal when
-     * the role changes hands, so the activity asks each time it comes back to the foreground.
-     */
-    fun refreshHomeRole() {
+    override fun onForeground() = refreshHomeRole()
+
+    /** What coming back tells Less, and the same question construction has to ask once. */
+    private fun refreshHomeRole() {
         val holdsRole = roleManager?.isRoleHeld(RoleManager.ROLE_HOME) == true
         mutableHoldsHomeRole.value = holdsRole
 
-        // Holding it once is recorded for good, so that the Drawer's prompt does not come back
-        // the day the user hands the role to another launcher.
-        if (holdsRole && !settings.value.hasHeldHomeRole) {
-            scope.launch { updateSettings { it.copy(hasHeldHomeRole = true) } }
+        if (holdsRole) {
+            scope.launch { userDataStore.updateData(LauncherUserData::recordingHomeRole) }
+        }
+    }
+
+    override suspend fun chooseTheme(
+        themeId: String,
+        wallpaperAsset: Int,
+    ) {
+        // Both writes outlive the surface that asked for them. The picker is composition-scoped,
+        // so a user who leaves as the Theme is written would otherwise cancel it mid-write and
+        // get neither the Theme nor its Wallpaper — the halves this call exists to prevent.
+        withContext(NonCancellable) {
+            userDataStore.updateData { userData -> userData.settingsUpdated { it.copy(themeId = themeId) } }
+            withContext(Dispatchers.IO) { hangWallpaper(wallpaperAsset) }
+        }
+    }
+
+    /** Picking a Theme replaces the system Wallpaper, so Home, the lock screen and recents agree. */
+    private fun hangWallpaper(wallpaperAsset: Int) {
+        val wallpaper = BitmapFactory.decodeResource(context.resources, wallpaperAsset) ?: return
+        try {
+            WallpaperManager.getInstance(context).setBitmap(
+                wallpaper,
+                null,
+                true,
+                WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK,
+            )
+        } catch (_: IOException) {
+            // The system can refuse a Wallpaper write; recording the Theme already succeeded.
         }
     }
 
     override suspend fun chooseFavorite(favorite: Favorite) {
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(
-                    (userData.favoritesList.filterNot { it.hasSameAppIdAs(favorite.appId) } + favorite.toProto())
-                        .sortedBy(StoredFavorite::getPosition),
-                ).build()
-        }
+        userDataStore.updateData { userData -> userData.choosing(favorite) }
     }
 
     override suspend fun dismissFavorite(appId: LauncherAppId) {
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(userData.favoritesList.filterNot { it.hasSameAppIdAs(appId) })
-                .build()
-        }
+        userDataStore.updateData { userData -> userData.dismissing(appId) }
     }
 
-    /**
-     * An uninstalled app leaves nothing behind: no Favorite, because that removal was
-     * intentional, and no record that it was hidden, because there is no longer anything to hide.
-     */
+    /** The platform names the package that went; what that leaves behind is the same everywhere. */
     private suspend fun forgetUninstalledPackage(
         packageName: String,
         user: UserHandle,
@@ -235,82 +246,27 @@ class AndroidLauncherRepository(
         val profileSerialNumber = userManager.getSerialNumberForUser(user)
         if (profileSerialNumber < 0) return
 
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(
-                    userData.favoritesList.filterNot { favorite ->
-                        favorite.packageName == packageName &&
-                            favorite.profileSerialNumber == profileSerialNumber
-                    },
-                ).clearHiddenApps()
-                .addAllHiddenApps(
-                    userData.hiddenAppsList.filterNot { hiddenApp ->
-                        hiddenApp.packageName == packageName &&
-                            hiddenApp.profileSerialNumber == profileSerialNumber
-                    },
-                ).build()
-        }
+        userDataStore.updateData { userData -> userData.forgetting(packageName, profileSerialNumber) }
     }
 
     override suspend fun hideApp(appId: LauncherAppId) {
-        userDataStore.updateData { userData ->
-            if (userData.hiddenAppsList.any { it.toAppId() == appId }) {
-                userData
-            } else {
-                userData.toBuilder().addHiddenApps(appId.toStoredHiddenApp()).build()
-            }
-        }
+        userDataStore.updateData { userData -> userData.hiding(appId) }
     }
 
     override suspend fun unhideApp(appId: LauncherAppId) {
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearHiddenApps()
-                .addAllHiddenApps(userData.hiddenAppsList.filterNot { it.toAppId() == appId })
-                .build()
-        }
+        userDataStore.updateData { userData -> userData.unhiding(appId) }
     }
 
     override suspend fun reorderFavorites(order: List<LauncherAppId>) {
-        userDataStore.updateData { userData ->
-            val reordered =
-                userData.favoritesList
-                    .map(StoredFavorite::toFavorite)
-                    .orderedBy(order)
-                    .map(Favorite::toProto)
-
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(reordered)
-                .build()
-        }
+        userDataStore.updateData { userData -> userData.reordered(order) }
     }
 
     override suspend fun updateSettings(update: (LauncherSettings) -> LauncherSettings) {
-        userDataStore.updateData { userData ->
-            val updated = update(userData.settings.toLauncherSettings())
-            userData.toBuilder().setSettings(updated.mergedInto(userData.settings)).build()
-        }
+        userDataStore.updateData { userData -> userData.settingsUpdated(update) }
     }
 
     override suspend fun restoreConfiguration(configuration: LauncherConfiguration) {
-        userDataStore.updateData { userData ->
-            userData
-                .toBuilder()
-                .clearFavorites()
-                .addAllFavorites(configuration.favoritesInOrder().map(Favorite::toProto))
-                .clearHiddenApps()
-                .addAllHiddenApps(configuration.hiddenApps.map(LauncherAppId::toStoredHiddenApp))
-                .setSettings(
-                    configuration
-                        .settingsRestoredOnto(userData.settings.toLauncherSettings())
-                        .mergedInto(userData.settings),
-                ).build()
-        }
+        userDataStore.updateData { userData -> userData.restoring(configuration) }
     }
 
     override fun close() {

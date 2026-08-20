@@ -44,10 +44,7 @@ import kotlinx.coroutines.launch
  * it asks the user for anything.
  */
 @Composable
-internal fun Setup(
-    repository: LauncherRepository,
-    onApplyWallpaper: (Theme) -> Unit = {},
-) {
+internal fun Setup(repository: LauncherRepository) {
     val settings by repository.settings.collectAsState()
     val installedApps by repository.installedApps.collectAsState()
     val step = settings.setupStep
@@ -79,7 +76,7 @@ internal fun Setup(
                 onGoTo = goTo,
                 onFinish = null,
             ) {
-                ThemePicker(repository = repository, onApplyWallpaper = onApplyWallpaper)
+                ThemePicker(repository = repository)
             }
 
         SetupStep.HomeRole ->

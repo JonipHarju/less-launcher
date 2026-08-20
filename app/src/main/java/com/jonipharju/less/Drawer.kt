@@ -74,6 +74,7 @@ internal fun Drawer(
     val theme = LocalTheme.current
     val iconMode = effectiveIconMode(theme, settings.iconModeOverride)
 
+    val searchAutoOpen = remember { DrawerSearchAutoOpen() }
     var curated by remember { mutableStateOf<LauncherApp?>(null) }
     var crowdedHome by remember { mutableStateOf(false) }
     var uninstallFailed by remember { mutableStateOf(false) }
@@ -100,7 +101,7 @@ internal fun Drawer(
             query = query,
             onQueryChange = { nextQuery ->
                 val matchingApp =
-                    drawerSearchAutoOpenMatch(
+                    searchAutoOpen.queryChanged(
                         previousQuery = query,
                         nextQuery = nextQuery,
                         results = drawerApps.rankedFor(nextQuery, customLabels),
@@ -194,16 +195,33 @@ internal fun Drawer(
     }
 }
 
-/** The sole visible result to open after the user types far enough into a Drawer search. */
-internal fun drawerSearchAutoOpenMatch(
-    previousQuery: String,
-    nextQuery: String,
-    results: List<LauncherApp>,
-): LauncherApp? =
-    results.singleOrNull()?.takeIf {
-        nextQuery.length >= DRAWER_SEARCH_AUTO_OPEN_MINIMUM_LENGTH &&
-            nextQuery.length > previousQuery.length
+/**
+ * The sole visible result a Drawer search opens, once the user has typed far enough forward
+ * into it — and only once: a query that keeps growing over the same sole result has already
+ * opened it, and typing on must not open it again. The result is let go of as soon as the
+ * search stops naming it alone, so a fresh search for the same app opens it afresh.
+ */
+internal class DrawerSearchAutoOpen {
+    private var opened: LauncherApp? = null
+
+    fun queryChanged(
+        previousQuery: String,
+        nextQuery: String,
+        results: List<LauncherApp>,
+    ): LauncherApp? {
+        val sole = results.singleOrNull()
+        if (sole != opened) opened = null
+        if (sole == null || sole == opened) return null
+
+        val typedForward =
+            nextQuery.length >= DRAWER_SEARCH_AUTO_OPEN_MINIMUM_LENGTH &&
+                nextQuery.length > previousQuery.length
+        if (!typedForward) return null
+
+        opened = sole
+        return sole
     }
+}
 
 private const val DRAWER_SEARCH_AUTO_OPEN_MINIMUM_LENGTH = 3
 

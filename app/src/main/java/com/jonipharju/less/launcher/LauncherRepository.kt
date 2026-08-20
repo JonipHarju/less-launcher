@@ -1,5 +1,6 @@
 package com.jonipharju.less.launcher
 
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.flow.StateFlow
 
@@ -99,6 +100,16 @@ interface LauncherRepository {
      * Favorites that exist on the device in front of it.
      */
     fun appAnswering(intent: EverydayIntent): LauncherAppId?
+
+    /**
+     * Records [themeId] as the user's Theme and hangs [wallpaperAsset] as the Wallpaper, so that
+     * a Theme is never chosen by halves. The Theme is recorded either way: a system that refuses
+     * the Wallpaper write leaves Home themed and the wall as it was.
+     */
+    suspend fun chooseTheme(
+        themeId: String,
+        @DrawableRes wallpaperAsset: Int,
+    )
 
     suspend fun chooseFavorite(favorite: Favorite)
 

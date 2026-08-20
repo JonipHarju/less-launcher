@@ -1,5 +1,6 @@
 package com.jonipharju.less.launcher
 
+import android.app.WallpaperManager
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
@@ -9,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Process
@@ -19,6 +21,7 @@ import android.provider.Settings
 import com.jonipharju.less.launcher.proto.LauncherUserData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +31,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
 
 /** [LauncherRepository] backed by Android's profile-aware launcher APIs. */
 class AndroidLauncherRepository(
@@ -198,6 +203,31 @@ class AndroidLauncherRepository(
         // the day the user hands the role to another launcher.
         if (holdsRole && !settings.value.hasHeldHomeRole) {
             scope.launch { updateSettings { it.copy(hasHeldHomeRole = true) } }
+        }
+    }
+
+    override suspend fun chooseTheme(
+        themeId: String,
+        wallpaperAsset: Int,
+    ) {
+        userDataStore.updateData { userData -> userData.settingsUpdated { it.copy(themeId = themeId) } }
+        // The wall is dressed even if the user leaves the picker as it happens: a half-applied
+        // Wallpaper is one the user would have to pick the Theme again to fix.
+        withContext(Dispatchers.IO + NonCancellable) { hangWallpaper(wallpaperAsset) }
+    }
+
+    /** Picking a Theme replaces the system Wallpaper, so Home, the lock screen and recents agree. */
+    private fun hangWallpaper(wallpaperAsset: Int) {
+        val wallpaper = BitmapFactory.decodeResource(context.resources, wallpaperAsset) ?: return
+        try {
+            WallpaperManager.getInstance(context).setBitmap(
+                wallpaper,
+                null,
+                true,
+                WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK,
+            )
+        } catch (_: IOException) {
+            // The system can refuse a Wallpaper write; recording the Theme already succeeded.
         }
     }
 

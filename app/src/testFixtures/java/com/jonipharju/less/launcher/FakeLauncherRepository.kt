@@ -20,6 +20,7 @@ class FakeLauncherRepository : LauncherRepository {
     private val mutableLaunchedApps = mutableListOf<LauncherApp>()
     private val mutableAppInfoShownFor = mutableListOf<LauncherAppId>()
     private val mutableUninstallsRequestedFor = mutableListOf<LauncherAppId>()
+    private val mutableWallpapersHung = mutableListOf<Int>()
     private val everydayApps = mutableMapOf<EverydayIntent, LauncherAppId>()
     private var mutableHomeRoleRequests = 0
 
@@ -32,6 +33,9 @@ class FakeLauncherRepository : LauncherRepository {
     val launchedApps: List<LauncherApp> = mutableLaunchedApps
     val appInfoShownFor: List<LauncherAppId> = mutableAppInfoShownFor
     val uninstallsRequestedFor: List<LauncherAppId> = mutableUninstallsRequestedFor
+
+    /** The Wallpapers this launcher has hung, in the order the user picked their Themes. */
+    val wallpapersHung: List<Int> = mutableWallpapersHung
     val homeRoleRequests: Int get() = mutableHomeRoleRequests
 
     /** The platform has made Less the default launcher, which Less records as the real one does. */
@@ -111,6 +115,14 @@ class FakeLauncherRepository : LauncherRepository {
     }
 
     override fun appAnswering(intent: EverydayIntent): LauncherAppId? = everydayApps[intent]
+
+    override suspend fun chooseTheme(
+        themeId: String,
+        wallpaperAsset: Int,
+    ) {
+        edit { it.settingsUpdated { settings -> settings.copy(themeId = themeId) } }
+        mutableWallpapersHung += wallpaperAsset
+    }
 
     override suspend fun chooseFavorite(favorite: Favorite) = edit { it.choosing(favorite) }
 

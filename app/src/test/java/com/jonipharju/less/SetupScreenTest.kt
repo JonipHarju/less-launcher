@@ -71,14 +71,13 @@ class SetupScreenTest {
     @Test
     fun theThemePickedDuringSetupIsTheThemeSetupItselfWears() {
         val repository = deviceOutOfTheBox()
-        val applied = mutableListOf<Theme>()
-        compose.setContent { LessLauncher(repository, onApplyWallpaper = { applied += it }) }
+        compose.setContent { LessLauncher(repository) }
 
         compose.onNodeWithText("Claude Monet").performScrollTo().performClick()
 
         compose.runOnIdle {
             assertEquals("parasol", repository.settings.value.themeId)
-            assertEquals(listOf(ParasolTheme), applied)
+            assertEquals(listOf(ParasolTheme.wallpaperAsset), repository.wallpapersHung)
         }
     }
 

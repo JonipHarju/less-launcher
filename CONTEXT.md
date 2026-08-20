@@ -80,6 +80,13 @@ which app answers it. Setup proposes the answers as the first Favorites, so a
 fresh Home works on any device without Less naming a single package.
 _Avoid_: default app, stock app, system app
 
+**Curation**:
+What a long press offers for one app: renaming or unpinning a Favorite, dismissing
+a Tombstone, and the system's own app info and uninstall. It is always about one
+app, it is always reached by holding rather than tapping, and on Home the same
+hold that opens it is the hold that would have dragged the Favorite instead.
+_Avoid_: context menu, options, actions, edit mode
+
 **Hidden App**:
 An installed app the user has excluded from the Drawer. It remains installed and
 launchable, just not listed.

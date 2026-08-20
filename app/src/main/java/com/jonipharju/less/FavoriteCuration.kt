@@ -10,8 +10,8 @@ import com.jonipharju.less.launcher.LauncherAppId
 import com.jonipharju.less.launcher.ShownFavorite
 import com.jonipharju.less.launcher.moved
 
-/** What Home draws this frame: its Favorites, and whatever is open over one of them. */
-internal data class CuratedHome(
+/** What Home draws this frame: its Favorites, and whatever Curation is open over one of them. */
+internal data class HomeFavorites(
     val shown: List<ShownFavorite>,
     val curated: ShownFavorite?,
     val renaming: ShownFavorite?,
@@ -34,27 +34,25 @@ internal class FavoriteCuration(
     private var draggedOrder by mutableStateOf<List<LauncherAppId>?>(null)
 
     // A drag only moves a Favorite once it has covered a whole row; what it covers on the way
-    // there is carried into the next row rather than thrown away.
+    // there is carried into the next row rather than thrown away. It belongs to the one drag
+    // that laid it down, so a gesture that dies without letting go leaves nothing for the next.
     private var carry = 0f
-
-    /** The order last drawn, which is what a drag starting now rearranges. */
-    private var drawnOrder = emptyList<LauncherAppId>()
+    private var dragging: LauncherAppId? = null
 
     /** What Home draws, given the Favorites the store is holding. */
-    fun state(pinned: List<ShownFavorite>): CuratedHome {
+    fun state(pinned: List<ShownFavorite>): HomeFavorites {
         val shown = draggedOrder?.let { order -> pinned.inTheOrderOf(order) } ?: pinned
-        drawnOrder = shown.map { it.favorite.appId }
 
-        return CuratedHome(
+        return HomeFavorites(
             shown = shown,
             curated = shown.withId(curated),
             renaming = shown.withId(renaming),
         )
     }
 
-    /** Opens the menu over [appId]. The press that got here is not also a drag. */
+    /** Opens the Curation menu over [appId]. The press that got here is not also a drag. */
     fun curate(appId: LauncherAppId) {
-        carry = 0f
+        letGo()
         curated = appId
     }
 
@@ -72,17 +70,27 @@ internal class FavoriteCuration(
         renaming = null
     }
 
-    /** [travelled] pixels of drag on [appId], which moves it once it has covered a whole row. */
+    /**
+     * [travelled] pixels of drag on [appId], among the Favorites [shown] as Home is drawing them,
+     * which moves it once the drag has covered a whole row.
+     */
     fun draggedBy(
         appId: LauncherAppId,
         travelled: Float,
+        shown: List<ShownFavorite>,
     ) {
+        // A drag of a different Favorite is a different drag, and starts from no travel at all.
+        if (appId != dragging) {
+            dragging = appId
+            carry = 0f
+        }
+
         carry += travelled
         val rows = (carry / rowHeight).toInt()
         if (rows == 0) return
 
         carry -= rows * rowHeight
-        val order = draggedOrder ?: drawnOrder
+        val order = draggedOrder ?: shown.map { it.favorite.appId }
         val from = order.indexOf(appId)
         if (from == -1) return
 
@@ -94,10 +102,16 @@ internal class FavoriteCuration(
      * the list cannot fall back to the old order for the frames the write takes.
      */
     suspend fun dragEnded(reorder: suspend (List<LauncherAppId>) -> Unit) {
-        carry = 0f
+        letGo()
         val order = draggedOrder ?: return
         reorder(order)
         draggedOrder = null
+    }
+
+    /** No drag is in flight, so there is no travel left over to carry into the next one. */
+    private fun letGo() {
+        dragging = null
+        carry = 0f
     }
 }
 

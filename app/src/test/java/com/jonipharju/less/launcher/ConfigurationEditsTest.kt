@@ -161,13 +161,13 @@ class ConfigurationEditsTest {
 
     @Test
     fun `holding the Home Role is recorded`() {
-        assertEquals(true, stored.homeRoleHeld().storedSettings().hasHeldHomeRole)
+        assertEquals(true, stored.recordingHomeRole().storedSettings().hasHeldHomeRole)
     }
 
     /** Handing the role to another launcher is a choice, and not a mistake to correct. */
     @Test
     fun `having held the Home Role survives losing it`() {
-        val edited = stored.homeRoleHeld().settingsUpdated { it.copy(themeId = "parasol") }
+        val edited = stored.recordingHomeRole().settingsUpdated { it.copy(themeId = "parasol") }
 
         assertEquals(true, edited.storedSettings().hasHeldHomeRole)
     }

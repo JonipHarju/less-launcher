@@ -111,7 +111,7 @@ class AndroidLauncherRepository(
         }
 
     init {
-        onForeground()
+        refreshHomeRole()
         launcherApps.registerCallback(launcherCallback)
         context.registerReceiver(
             profileAvailabilityReceiver,
@@ -190,12 +190,15 @@ class AndroidLauncherRepository(
             ?: candidates.firstOrNull()
     }
 
-    override fun onForeground() {
+    override fun onForeground() = refreshHomeRole()
+
+    /** What coming back tells Less, and the same question construction has to ask once. */
+    private fun refreshHomeRole() {
         val holdsRole = roleManager?.isRoleHeld(RoleManager.ROLE_HOME) == true
         mutableHoldsHomeRole.value = holdsRole
 
         if (holdsRole) {
-            scope.launch { userDataStore.updateData(LauncherUserData::homeRoleHeld) }
+            scope.launch { userDataStore.updateData(LauncherUserData::recordingHomeRole) }
         }
     }
 
@@ -203,10 +206,13 @@ class AndroidLauncherRepository(
         themeId: String,
         wallpaperAsset: Int,
     ) {
-        userDataStore.updateData { userData -> userData.settingsUpdated { it.copy(themeId = themeId) } }
-        // The wall is dressed even if the user leaves the picker as it happens: a half-applied
-        // Wallpaper is one the user would have to pick the Theme again to fix.
-        withContext(Dispatchers.IO + NonCancellable) { hangWallpaper(wallpaperAsset) }
+        // Both writes outlive the surface that asked for them. The picker is composition-scoped,
+        // so a user who leaves as the Theme is written would otherwise cancel it mid-write and
+        // get neither the Theme nor its Wallpaper — the halves this call exists to prevent.
+        withContext(NonCancellable) {
+            userDataStore.updateData { userData -> userData.settingsUpdated { it.copy(themeId = themeId) } }
+            withContext(Dispatchers.IO) { hangWallpaper(wallpaperAsset) }
+        }
     }
 
     /** Picking a Theme replaces the system Wallpaper, so Home, the lock screen and recents agree. */

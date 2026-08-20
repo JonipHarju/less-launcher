@@ -124,7 +124,7 @@ internal fun Home(
                             iconMode = iconMode,
                             onLaunch = { repository.launch(shownFavorite.app) },
                             onCurate = { curation.curate(shownFavorite.favorite.appId) },
-                            onDrag = { travelled -> curation.draggedBy(shownFavorite.favorite.appId, travelled) },
+                            onDrag = { travelled -> curation.draggedBy(shownFavorite.favorite.appId, travelled, home.shown) },
                             onDragEnd = { scope.launch { curation.dragEnded(repository::reorderFavorites) } },
                         )
                     }

@@ -4,7 +4,8 @@ import com.jonipharju.less.launcher.proto.LauncherUserData
 import com.jonipharju.less.launcher.proto.StoredFavorite
 import com.jonipharju.less.launcher.proto.StoredHiddenApp
 
-// Every edit the launcher makes to the Configuration, as one stored record in and one out.
+// How the launcher reads the Configuration back, and every edit it makes to it — each edit
+// one stored record in and one out.
 //
 // The store and the Fake both put their changes down through here, so a rule cannot hold on a
 // phone and not in a test. What stays outside is what the record cannot answer: the platform
@@ -22,7 +23,7 @@ internal fun LauncherUserData.storedSettings(): LauncherSettings = settings.toLa
  * Drawer's standing prompt does not come back the day the user hands the role to another
  * launcher: that is a choice, and a launcher that keeps asking is a launcher that nags.
  */
-internal fun LauncherUserData.homeRoleHeld(): LauncherUserData =
+internal fun LauncherUserData.recordingHomeRole(): LauncherUserData =
     if (storedSettings().hasHeldHomeRole) this else settingsUpdated { it.copy(hasHeldHomeRole = true) }
 
 /** Puts [favorite] on Home. An app already there is replaced rather than pinned twice. */
@@ -58,7 +59,7 @@ internal fun LauncherUserData.forgetting(
 
 /** Takes [appId] out of the Drawer. Hiding it again changes nothing. */
 internal fun LauncherUserData.hiding(appId: LauncherAppId): LauncherUserData =
-    if (hiddenAppsList.any { it.toAppId() == appId }) {
+    if (hiddenAppsList.any { it.hasSameAppIdAs(appId) }) {
         this
     } else {
         toBuilder().addHiddenApps(appId.toStoredHiddenApp()).build()
@@ -66,7 +67,7 @@ internal fun LauncherUserData.hiding(appId: LauncherAppId): LauncherUserData =
 
 /** Puts [appId] back in the Drawer. Unhiding an app that was never hidden changes nothing. */
 internal fun LauncherUserData.unhiding(appId: LauncherAppId): LauncherUserData =
-    withHiddenApps(hiddenAppsList.filterNot { it.toAppId() == appId })
+    withHiddenApps(hiddenAppsList.filterNot { it.hasSameAppIdAs(appId) })
 
 /**
  * Rewrites every Favorite's position to the order [order] names, so that a drag cannot leave

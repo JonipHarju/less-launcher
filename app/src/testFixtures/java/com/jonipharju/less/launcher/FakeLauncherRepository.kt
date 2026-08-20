@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * than by `LauncherApps`, and launching an app records it instead of starting one.
  */
 class FakeLauncherRepository : LauncherRepository {
-    private val mutableStoredData = MutableStateFlow(LauncherUserData.getDefaultInstance())
+    private var storedData: LauncherUserData = LauncherUserData.getDefaultInstance()
     private val mutableInstalledApps = MutableStateFlow<List<LauncherApp>>(emptyList())
     private val mutableFavorites = MutableStateFlow<List<Favorite>>(emptyList())
     private val mutableHiddenApps = MutableStateFlow<Set<LauncherAppId>>(emptySet())
@@ -104,7 +104,7 @@ class FakeLauncherRepository : LauncherRepository {
     }
 
     override fun onForeground() {
-        if (mutableHoldsHomeRole.value) edit(LauncherUserData::homeRoleHeld)
+        if (mutableHoldsHomeRole.value) edit(LauncherUserData::recordingHomeRole)
     }
 
     /** Nothing is registered with the platform, so there is nothing to unregister. */
@@ -155,11 +155,10 @@ class FakeLauncherRepository : LauncherRepository {
      * shared projections, so this holds no idea of its own about what any of them mean.
      */
     private fun edit(change: (LauncherUserData) -> LauncherUserData) {
-        val stored = change(mutableStoredData.value)
-        mutableStoredData.value = stored
-        mutableFavorites.value = stored.storedFavorites()
-        mutableHiddenApps.value = stored.storedHiddenApps()
-        mutableSettings.value = stored.storedSettings()
+        storedData = change(storedData)
+        mutableFavorites.value = storedData.storedFavorites()
+        mutableHiddenApps.value = storedData.storedHiddenApps()
+        mutableSettings.value = storedData.storedSettings()
     }
 }
 

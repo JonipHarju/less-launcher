@@ -74,6 +74,7 @@ internal fun Drawer(
 
     var curated by remember { mutableStateOf<LauncherApp?>(null) }
     var crowdedHome by remember { mutableStateOf(false) }
+    var uninstallFailed by remember { mutableStateOf(false) }
 
     LaunchedEffect(searchFocusRequester, opensKeyboard) {
         if (opensKeyboard) searchFocusRequester.requestFocus()
@@ -160,7 +161,9 @@ internal fun Drawer(
             }
             MenuAction(label = stringResource(R.string.app_uninstall)) {
                 curated = null
-                repository.requestUninstall(app.id)
+                if (!repository.requestUninstall(app.id)) {
+                    uninstallFailed = true
+                }
             }
         }
     }
@@ -169,6 +172,13 @@ internal fun Drawer(
         Notice(
             message = stringResource(R.string.favorites_soft_cap, FavoritesSoftCap),
             onDismiss = { crowdedHome = false },
+        )
+    }
+
+    if (uninstallFailed) {
+        Notice(
+            message = stringResource(R.string.uninstall_unavailable),
+            onDismiss = { uninstallFailed = false },
         )
     }
 }

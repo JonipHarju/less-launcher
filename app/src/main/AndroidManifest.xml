@@ -16,6 +16,10 @@
       Tapping the clock and date tries their specific intents first, then the platform's
       clock or calendar category. Those actions and categories are not all launchable
       activities, so the focused queries make their handlers visible without a permission.
+
+      Uninstall from Curation asks the package installer to delete one package. The delete
+      action is not a LAUNCHER intent, so it needs its own declaration; without it the request
+      resolves to nothing and the menu closes as if it had been accepted.
     -->
     <queries>
         <intent>
@@ -44,6 +48,10 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.APP_CALENDAR" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DELETE" />
+            <data android:scheme="package" />
         </intent>
     </queries>
 

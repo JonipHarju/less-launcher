@@ -1,15 +1,22 @@
 package com.jonipharju.less
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertAll
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jonipharju.less.launcher.DrawerOpenDirection
 import com.jonipharju.less.launcher.FakeLauncherRepository
@@ -18,66 +25,80 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
-/**
- * A chosen option has to read as chosen on its own, not only by comparison with its neighbours.
- * Colour alone was too weak on several Themes; the marker is the extra signal.
- */
 @RunWith(AndroidJUnit4::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], qualifiers = "w360dp-h800dp-xxhdpi")
+@Config(sdk = [35])
 class SettingsSelectionTest {
     @get:Rule
     val compose = createComposeRule()
 
     @Test
-    fun `the chosen option in a group carries a marker the others do not`() {
+    fun eachStoredChoiceHasOneVisibleSelectionMarker() {
         compose.setContent { Settings(FakeLauncherRepository(), onClose = {}) }
 
-        compose.onNode(markedChoice("Swipe up"), useUnmergedTree = true).assertExists()
-        compose.onNode(markedChoice("Swipe down"), useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithText("Swipe up").assertIsSelected()
-        compose.onNodeWithText("Swipe down").assertExists()
+        // Theme, Drawer Open Direction, Home Alignment, and Icon Mode each expose one choice.
+        compose.onAllNodesWithText("✓", useUnmergedTree = true).assertCountEquals(4)
     }
 
     @Test
-    fun `choosing another option moves the marker and does not shift the labels`() {
+    fun selectionMarkersReserveTheSameLabelSpace() {
+        compose.setContent { Settings(FakeLauncherRepository(), onClose = {}) }
+        val swipeUpLeft =
+            compose
+                .onNodeWithText("Swipe up", useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .boundsInRoot.left
+        val swipeDownLeft =
+            compose
+                .onNodeWithText("Swipe down", useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .boundsInRoot.left
+
+        assertEquals(
+            swipeUpLeft,
+            swipeDownLeft,
+            0f,
+        )
+    }
+
+    /** The option is the row: a tap on its margin, before the marker, chooses it as surely as one on its label. */
+    @Test
+    fun theWholeRowChoosesTheOption() {
+        val repository = FakeLauncherRepository()
+        compose.setContent { Settings(repository, onClose = {}) }
+
+        compose.onNodeWithText("Swipe down").performScrollTo().performTouchInput { click(Offset(1f, centerY)) }
+
+        compose.runOnIdle { assertEquals(DrawerOpenDirection.SwipeDown, repository.settings.value.drawerOpenDirection) }
+    }
+
+    /** A reader hears one radio button, selected or not, with its marker folded in rather than beside it. */
+    @Test
+    fun eachOptionReadsAsOneRadioButtonWithItsState() {
+        compose.setContent { Settings(FakeLauncherRepository(), onClose = {}) }
+
+        compose
+            .onNodeWithText("Swipe up")
+            .assertIsSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+            .assert(hasText("✓"))
+        compose
+            .onNodeWithText("Swipe down")
+            .assertIsNotSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+        // The marker is never a node of its own: every node that carries it is an option.
+        compose.onAllNodesWithText("✓").assertAll(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+    }
+
+    @Test
+    fun choosingAnOptionMovesTheMarkerToTheNewSelection() {
         val repository = FakeLauncherRepository()
         compose.setContent { Settings(repository, onClose = {}) }
 
         compose.onNodeWithText("Swipe down").performScrollTo().performClick()
-        compose.runOnIdle {
-            assertEquals(DrawerOpenDirection.SwipeDown, repository.settings.value.drawerOpenDirection)
-        }
 
-        compose.onNode(markedChoice("Swipe down"), useUnmergedTree = true).assertExists()
-        compose.onNode(markedChoice("Swipe up"), useUnmergedTree = true).assertDoesNotExist()
+        compose.runOnIdle { assertEquals(DrawerOpenDirection.SwipeDown, repository.settings.value.drawerOpenDirection) }
         compose.onNodeWithText("Swipe down").assertIsSelected()
-
-        val up = compose.onNodeWithText("Swipe up").getUnclippedBoundsInRoot()
-        val down = compose.onNodeWithText("Swipe down").getUnclippedBoundsInRoot()
-        assertEquals(up.left, down.left)
+        compose.onAllNodesWithText("✓", useUnmergedTree = true).assertCountEquals(4)
     }
-
-    @Test
-    fun `the Theme picker marks the active Theme the same way`() {
-        val repository = FakeLauncherRepository()
-        compose.setContent { Settings(repository, onClose = {}) }
-
-        compose.onNode(markedChoice("Near Black"), useUnmergedTree = true).assertExists()
-        compose.onNode(markedChoice("Off White"), useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithText("Near Black").assertIsSelected()
-
-        compose.onNodeWithText("Claude Monet").performScrollTo().performClick()
-        compose.waitForIdle()
-
-        compose.onNode(markedChoice("Claude Monet"), useUnmergedTree = true).assertExists()
-        compose.onNode(markedChoice("Near Black"), useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithText("Claude Monet").assertIsSelected()
-    }
-
-    /** The option row itself, not the Settings screen that happens to contain both a label and a mark. */
-    private fun markedChoice(label: String): SemanticsMatcher =
-        isSelectable() and hasAnyDescendant(hasText(label)) and hasAnyDescendant(hasText("●"))
 }

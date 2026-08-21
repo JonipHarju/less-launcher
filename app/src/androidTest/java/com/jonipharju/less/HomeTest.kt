@@ -1,6 +1,7 @@
 package com.jonipharju.less
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -12,9 +13,11 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
+import com.jonipharju.less.launcher.AppIcon
 import com.jonipharju.less.launcher.FakeLauncherRepository
 import com.jonipharju.less.launcher.Favorite
 import com.jonipharju.less.launcher.HomeAlignment
+import com.jonipharju.less.launcher.IconMode
 import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.ShownFavorite
 import com.jonipharju.less.launcher.launcherAppFixture
@@ -76,27 +79,55 @@ class HomeTest {
     fun aDragBeforeTheLongPressTimeoutScrollsHomeAndLaunchesNothing() {
         val labels = (1..20).map { "App$it" }
         val repository = homeWith(*labels.toTypedArray())
+        val beforeDrag = compose.onNodeWithText("App1").getUnclippedBoundsInRoot().top
 
         compose.onNodeWithText("App1").performTouchInput {
             down(center)
-            moveBy(Offset(0f, viewConfiguration.touchSlop * 8f))
+            moveBy(Offset(0f, -viewConfiguration.touchSlop * 8f))
             up()
         }
 
         compose.runOnIdle { assertEquals(emptyList<LauncherApp>(), repository.launchedApps) }
-        compose.onNodeWithText(labels.last()).performScrollTo().assertIsDisplayed()
+        val afterDrag = compose.onNodeWithText("App1").getUnclippedBoundsInRoot().top
+        assertTrue("Expected $afterDrag above $beforeDrag", afterDrag < beforeDrag)
     }
 
     @Test
-    fun tappingATombstoneLaunchesNothingAndALongPressOpensDismissal() {
+    fun theDrawerOpenDirectionOnAFavoriteOpensTheDrawerAndLaunchesNothing() {
+        var drawerOpens = 0
+        val repository = homeWith("Clock", onOpenDrawer = { drawerOpens++ })
+
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, -FavoriteRowHeight.toPx() * 1.5f))
+            up()
+        }
+
+        compose.runOnIdle {
+            assertEquals(1, drawerOpens)
+            assertEquals(emptyList<LauncherApp>(), repository.launchedApps)
+        }
+    }
+
+    @Test
+    fun tappingATombstoneLaunchesNothingAndALongPressOpensCuration() {
         val repository = homeWith("Clock")
         val clock = repository.installedApps.value.single()
         compose.runOnIdle { repository.makeUnavailable(clock.id) }
 
-        compose.onNodeWithText("Clock").performClick()
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            moveBy(Offset(0f, viewConfiguration.touchSlop / 2f))
+            up()
+        }
         compose.runOnIdle { assertEquals(emptyList<LauncherApp>(), repository.launchedApps) }
 
-        compose.onNodeWithText("Clock").performTouchInput { longClick() }
+        compose.onNodeWithText("Clock").performTouchInput {
+            down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
+            moveBy(Offset(0f, 1f))
+            up()
+        }
         compose.onNodeWithText("Dismiss Tombstone").assertExists()
     }
 
@@ -321,6 +352,102 @@ class HomeTest {
     }
 
     @Test
+    fun centredHomeKeepsFavoriteIconsInOneColumn() {
+        val repository = FakeLauncherRepository()
+        val icon = AppIcon(original = ImageBitmap(1, 1), themeable = null)
+        val shortLabel = launcherAppFixture("Maps").copy(icon = icon)
+        val longLabel = launcherAppFixture("Very long favorite label").copy(icon = icon)
+        runBlocking {
+            repository.install(shortLabel)
+            repository.install(longLabel)
+            repository.chooseFavorite(Favorite(shortLabel.id, position = 0))
+            repository.chooseFavorite(Favorite(longLabel.id, position = 1))
+            repository.updateSettings { it.copy(homeAlignment = HomeAlignment.Centred) }
+        }
+        compose.setContent {
+            Home(
+                repository = repository,
+                timeText = "14:35",
+                dateText = "Tuesday, August 18, 2026",
+                onOpenClock = {},
+                onOpenCalendar = {},
+                onOpenDrawer = {},
+            )
+        }
+
+        val shortLabelLeft = compose.onNodeWithText(shortLabel.label).getUnclippedBoundsInRoot().left
+        val longLabelLeft = compose.onNodeWithText(longLabel.label).getUnclippedBoundsInRoot().left
+
+        assertEquals("Favorite labels should begin after one shared icon column", shortLabelLeft, longLabelLeft)
+    }
+
+    @Test
+    fun centredHomeWithIconsOffCentresEachFavoriteLabel() {
+        val repository = FakeLauncherRepository()
+        val icon = AppIcon(original = ImageBitmap(1, 1), themeable = null)
+        val shortLabel = launcherAppFixture("Maps").copy(icon = icon)
+        val longLabel = launcherAppFixture("Very long favorite label").copy(icon = icon)
+        runBlocking {
+            repository.install(shortLabel)
+            repository.install(longLabel)
+            repository.chooseFavorite(Favorite(shortLabel.id, position = 0))
+            repository.chooseFavorite(Favorite(longLabel.id, position = 1))
+            repository.updateSettings {
+                it.copy(homeAlignment = HomeAlignment.Centred, iconModeOverride = IconMode.Off)
+            }
+        }
+        compose.setContent {
+            Home(
+                repository = repository,
+                timeText = "14:35",
+                dateText = "Tuesday, August 18, 2026",
+                onOpenClock = {},
+                onOpenCalendar = {},
+                onOpenDrawer = {},
+            )
+        }
+
+        val shortLabelBounds = compose.onNodeWithText(shortLabel.label).getUnclippedBoundsInRoot()
+        val longLabelBounds = compose.onNodeWithText(longLabel.label).getUnclippedBoundsInRoot()
+        val shortLabelCentre = shortLabelBounds.left + (shortLabelBounds.right - shortLabelBounds.left) / 2
+        val longLabelCentre = longLabelBounds.left + (longLabelBounds.right - longLabelBounds.left) / 2
+
+        assertEquals("Icon Mode off must not leave an icon column behind", shortLabelCentre, longLabelCentre)
+    }
+
+    @Test
+    fun centredHomeDoesNotIndentATombstoneForAnIcon() {
+        val repository = FakeLauncherRepository()
+        val available = launcherAppFixture("Maps").copy(icon = AppIcon(ImageBitmap(1, 1), null))
+        val unavailable = launcherAppFixture("Calendar")
+        runBlocking {
+            repository.install(available)
+            repository.install(unavailable)
+            repository.chooseFavorite(Favorite(available.id, position = 0))
+            repository.chooseFavorite(Favorite(unavailable.id, position = 1))
+            repository.updateSettings { it.copy(homeAlignment = HomeAlignment.Centred) }
+        }
+        repository.makeUnavailable(unavailable.id)
+        compose.setContent {
+            Home(
+                repository = repository,
+                timeText = "14:35",
+                dateText = "Tuesday, August 18, 2026",
+                onOpenClock = {},
+                onOpenCalendar = {},
+                onOpenDrawer = {},
+            )
+        }
+
+        val clockBounds = compose.onNodeWithText("14:35").getUnclippedBoundsInRoot()
+        val tombstoneBounds = compose.onNodeWithText(unavailable.label).getUnclippedBoundsInRoot()
+        val clockCentre = clockBounds.left + (clockBounds.right - clockBounds.left) / 2
+        val tombstoneCentre = tombstoneBounds.left + (tombstoneBounds.right - tombstoneBounds.left) / 2
+
+        assertEquals("A Tombstone must not reserve space for an icon", clockCentre, tombstoneCentre)
+    }
+
+    @Test
     fun centringTakesEffectWithoutLeavingHome() {
         val repository = FakeLauncherRepository()
         compose.setContent {
@@ -344,7 +471,10 @@ class HomeTest {
     }
 
     /** Home showing one Favorite per label, in the order given, and nothing else. */
-    private fun homeWith(vararg labels: String): FakeLauncherRepository {
+    private fun homeWith(
+        vararg labels: String,
+        onOpenDrawer: () -> Unit = {},
+    ): FakeLauncherRepository {
         val repository = FakeLauncherRepository()
         runBlocking {
             labels.forEachIndexed { position, label ->
@@ -361,7 +491,7 @@ class HomeTest {
                 dateText = "Tuesday, August 18, 2026",
                 onOpenClock = {},
                 onOpenCalendar = {},
-                onOpenDrawer = {},
+                onOpenDrawer = onOpenDrawer,
             )
         }
         return repository

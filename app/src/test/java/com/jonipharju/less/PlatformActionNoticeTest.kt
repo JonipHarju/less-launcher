@@ -18,25 +18,12 @@ import android.text.format.DateFormat as AndroidDateFormat
 
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [35])
-class ClockAndCalendarNoticeTest {
+class PlatformActionNoticeTest {
     @get:Rule
     val compose = createComposeRule()
 
     @Test
-    fun `when the date opens nothing a dismissible message tells the user`() {
-        val repository = FakeLauncherRepository().also { it.finishSetup() }
-        compose.setContent { LessLauncher(repository, onOpenCalendar = { false }) }
-
-        val date = DateFormat.getDateInstance(DateFormat.FULL, Locale.getDefault()).format(Date())
-        compose.onNodeWithText(date).performClick()
-
-        compose.onNodeWithText("No calendar app answers on this phone.").assertExists()
-        compose.onNodeWithText("Got it").performClick()
-        compose.onNodeWithText("No calendar app answers on this phone.").assertDoesNotExist()
-    }
-
-    @Test
-    fun `when the clock opens nothing a dismissible message tells the user`() {
+    fun `a clock action with no handler shows a dismissible Less message`() {
         val repository = FakeLauncherRepository().also { it.finishSetup() }
         compose.setContent { LessLauncher(repository, onOpenClock = { false }) }
 
@@ -47,9 +34,23 @@ class ClockAndCalendarNoticeTest {
         compose.onNodeWithText("No clock app answers on this phone.").assertDoesNotExist()
     }
 
+    @Test
+    fun `a calendar action with no handler shows a dismissible Less message`() {
+        val repository = FakeLauncherRepository().also { it.finishSetup() }
+        compose.setContent { LessLauncher(repository, onOpenCalendar = { false }) }
+
+        compose.onNodeWithText(displayedDate()).performClick()
+
+        compose.onNodeWithText("No calendar app answers on this phone.").assertExists()
+        compose.onNodeWithText("Got it").performClick()
+        compose.onNodeWithText("No calendar app answers on this phone.").assertDoesNotExist()
+    }
+
     private fun displayedTime(): String {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val skeleton = if (AndroidDateFormat.is24HourFormat(context)) "Hm" else "hm"
         return DateFormat.getInstanceForSkeleton(skeleton, Locale.getDefault()).format(Date())
     }
+
+    private fun displayedDate(): String = DateFormat.getDateInstance(DateFormat.FULL, Locale.getDefault()).format(Date())
 }

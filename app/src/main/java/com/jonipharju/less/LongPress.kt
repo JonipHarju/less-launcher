@@ -47,7 +47,9 @@ internal fun pressOutcome(
  *
  * A press that ends without travelling is the long press; one that travels is the drag. The
  * menu therefore opens on release rather than under the finger, which is what lets the same
- * gesture continue into a drag.
+ * gesture continue into a drag. Exactly one of [onLongPress] and [onDrag] hears from a press:
+ * nothing is reported as drag until the finger has travelled past slop, and once it has, the
+ * press is a drag for good and ends in [onDragEnd] rather than in the menu.
  */
 internal fun Modifier.onTapLongPressOrDrag(
     key: Any?,
@@ -71,7 +73,7 @@ internal fun Modifier.onTapLongPressOrDrag(
                         val change = event.changes.firstOrNull { it.id == down.id } ?: return@withTimeout
                         travel = max(travel, (change.position - origin).getDistance())
                         if (travel > slop) {
-                            // The scrolling container and the Drawer swipe own travel past slop.
+                            // Home scrolling and the Drawer Open Direction own travel past slop.
                             return@withTimeout
                         }
                         if (change.changedToUpIgnoreConsumed()) {
@@ -101,18 +103,22 @@ internal fun Modifier.onTapLongPressOrDrag(
             }
 
             var travelled = 0f
-            var farthest = 0f
+            var reported = 0f
+            var dragging = false
             drag(down.id) { change ->
                 travelled += change.positionChange().y
-                farthest = max(farthest, abs(travelled))
-                onDrag(change.positionChange().y)
                 change.consume()
+                // A finger that is merely holding still wobbles; the row hears nothing of that.
+                // The first report carries the whole travel, so none of it is lost to the wait.
+                if (!dragging) {
+                    dragging = pressOutcome(timedOut = true, travel = abs(travelled), touchSlop = slop) == PressOutcome.Drag
+                }
+                if (dragging) {
+                    onDrag(travelled - reported)
+                    reported = travelled
+                }
             }
 
-            if (pressOutcome(timedOut = true, travel = farthest, touchSlop = slop) == PressOutcome.Drag) {
-                onDragEnd()
-            } else {
-                onLongPress()
-            }
+            if (dragging) onDragEnd() else onLongPress()
         }
     }

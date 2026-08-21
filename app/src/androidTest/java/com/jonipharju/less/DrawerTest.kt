@@ -109,19 +109,6 @@ class DrawerTest {
     }
 
     @Test
-    fun typingAUniqueMatchOfThreeCharactersLaunchesThatApp() {
-        val repository = FakeLauncherRepository()
-        val clock = launcherAppFixture(label = "Clock")
-        repository.install(launcherAppFixture(label = "Camera"))
-        repository.install(clock)
-        compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
-
-        compose.onNodeWithContentDescription("Search apps").performTextInput("clo")
-
-        assertEquals(listOf(clock), repository.launchedApps)
-    }
-
-    @Test
     fun searchIsFocusedAndFiltersWithoutLaunching() {
         val repository = FakeLauncherRepository()
         repository.install(launcherAppFixture(label = "Camera"))
@@ -443,8 +430,7 @@ class DrawerTest {
             repository.hideApp(clock.id)
             compose.setContent { Drawer(repository, onClose = {}, onOpenSettings = {}) }
 
-            // Two characters: auto-launch must not fire, and the search action still must.
-            compose.onNodeWithContentDescription("Search apps").performTextInput("cl")
+            compose.onNodeWithContentDescription("Search apps").performTextInput("clock")
             compose.onNodeWithContentDescription("Search apps").performImeAction()
 
             assertEquals(listOf(clockRadio), repository.launchedApps)

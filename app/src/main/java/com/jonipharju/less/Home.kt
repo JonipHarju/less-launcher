@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -90,9 +89,8 @@ internal fun Home(
             val textAlign = settings.homeAlignment.asTextAlign()
             val iconsShown = iconMode != IconMode.Off
             val rowArrangement = settings.homeAlignment.asRowArrangement(iconsShown)
-            val rowTextAlign = if (iconsShown) TextAlign.Start else textAlign
-            // Centred Home still centres the Favorites as a block; IntrinsicSize.Max is what
-            // makes that block as wide as the longest row so the icons can share one x.
+            // Centred Home centres the Favorites as one block when it shows icons. Its intrinsic
+            // width is the longest row, so every icon begins in the same column.
             val centreFavoritesBlock = settings.homeAlignment == HomeAlignment.Centred && iconsShown
             BasicText(
                 text = timeText,
@@ -128,14 +126,13 @@ internal fun Home(
                         if (shownFavorite.app == null) {
                             TombstoneRow(
                                 shownFavorite = shownFavorite,
-                                textAlign = rowTextAlign,
-                                indentForIcon = centreFavoritesBlock,
+                                textAlign = textAlign,
                                 onDismiss = { curation.curate(shownFavorite.favorite.appId) },
                             )
                         } else {
                             FavoriteRow(
                                 shownFavorite = shownFavorite,
-                                textAlign = rowTextAlign,
+                                textAlign = textAlign,
                                 rowArrangement = rowArrangement,
                                 iconMode = iconMode,
                                 onLaunch = { repository.launch(shownFavorite.app) },
@@ -208,14 +205,15 @@ internal fun Home(
 private fun TombstoneRow(
     shownFavorite: ShownFavorite,
     textAlign: TextAlign,
-    indentForIcon: Boolean,
     onDismiss: () -> Unit,
 ) {
-    Row(
+    BasicText(
+        text = shownFavorite.label,
         modifier =
             Modifier
                 .fillMaxWidth()
                 .height(FavoriteRowHeight)
+                .wrapContentHeight(Alignment.CenterVertically)
                 .onTapLongPressOrDrag(
                     key = shownFavorite.favorite.appId,
                     onTap = {},
@@ -223,24 +221,12 @@ private fun TombstoneRow(
                     onDrag = {},
                     onDragEnd = {},
                 ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (indentForIcon) {
-            Spacer(Modifier.width(LauncherIconSize + LauncherIconGap))
-        }
-        BasicText(
-            text = shownFavorite.label,
-            modifier =
-                Modifier
-                    .weight(1f, fill = !indentForIcon)
-                    .wrapContentHeight(Alignment.CenterVertically),
-            style =
-                themedAppTextStyle(
-                    color = LocalTheme.current.secondaryTextColor,
-                    textAlign = textAlign,
-                ),
-        )
-    }
+        style =
+            themedAppTextStyle(
+                color = LocalTheme.current.secondaryTextColor,
+                textAlign = textAlign,
+            ),
+    )
 }
 
 /** One Favorite on Home: tap to launch it, long-press to curate it, drag to move it. */
@@ -273,8 +259,7 @@ private fun FavoriteRow(
         LauncherAppIcon(shownFavorite.app?.icon, iconMode)
         BasicText(
             text = shownFavorite.label,
-            // Shrinkable but not filling, so a centred block can size itself to the longest
-            // label and Left alignment can still pack icon and label against the start.
+            // Shrinkable but not filling, so the arrangement can centre icon and label together.
             modifier = Modifier.weight(1f, fill = false),
             style = themedAppTextStyle(color = LocalTheme.current.textColor, textAlign = textAlign),
         )
@@ -317,20 +302,15 @@ private fun HomeAlignment.asHorizontalAlignment() =
         HomeAlignment.Centred -> Alignment.CenterHorizontally
     }
 
-/**
- * Centred Home with icons keeps them in one column inside a centred block, rather than
- * centring each row's icon and label as a group — different label lengths would stagger
- * the icons. Without icons, the labels themselves stay centred and nothing holds their place.
- */
+/** Centred Home gives shown icons one column; without them, it centres each label. */
 private fun HomeAlignment.asRowArrangement(iconsShown: Boolean): Arrangement.Horizontal =
     when (this) {
         HomeAlignment.Left -> Arrangement.spacedBy(LauncherIconGap, Alignment.Start)
         HomeAlignment.Centred ->
-            if (iconsShown) {
-                Arrangement.spacedBy(LauncherIconGap, Alignment.Start)
-            } else {
-                Arrangement.spacedBy(LauncherIconGap, Alignment.CenterHorizontally)
-            }
+            Arrangement.spacedBy(
+                LauncherIconGap,
+                if (iconsShown) Alignment.Start else Alignment.CenterHorizontally,
+            )
     }
 
 private fun HomeAlignment.asTextAlign() =

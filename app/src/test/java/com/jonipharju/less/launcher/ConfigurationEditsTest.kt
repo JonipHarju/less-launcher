@@ -128,10 +128,7 @@ class ConfigurationEditsTest {
         assertEquals(setOf(browser.id), edited.storedHiddenApps())
     }
 
-    /**
-     * A Tombstone marks a loss the user did not ask for. Uninstall is a choice, so the
-     * Favorite is forgotten rather than shown in place as unavailable.
-     */
+    /** A Tombstone marks an unasked loss; an uninstall is deliberate and leaves none behind. */
     @Test
     fun `a Favorite the user uninstalls leaves no Tombstone`() {
         val edited =

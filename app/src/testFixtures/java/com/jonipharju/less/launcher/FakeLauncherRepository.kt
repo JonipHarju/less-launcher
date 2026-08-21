@@ -118,10 +118,7 @@ class FakeLauncherRepository : LauncherRepository {
         mutableAppInfoShownFor += appId
     }
 
-    /**
-     * When false, [requestUninstall] records the ask and reports that the system would not
-     * take it — a device with no package installer, or a package the launcher may not touch.
-     */
+    /** Whether the system accepts uninstall requests. */
     var uninstallsSucceed = true
 
     override fun requestUninstall(appId: LauncherAppId): Boolean {

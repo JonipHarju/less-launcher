@@ -1,7 +1,6 @@
 package com.jonipharju.less
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.icu.text.DateFormat
@@ -46,16 +45,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
-        // Light system-bar appearance would otherwise opt into the platform's navigation-bar
-        // contrast scrim, which paints a bright band over the Wallpaper on light Themes.
-        window.isNavigationBarContrastEnforced = false
         super.onCreate(savedInstanceState)
         launcherRepository = AndroidLauncherRepository(applicationContext)
         setContent {
             LessLauncher(
                 repository = launcherRepository,
-                onOpenClock = { openFirst(clockOpenIntents(), ::startActivitySafely) },
-                onOpenCalendar = { now -> openFirst(calendarOpenIntents(now), ::startActivitySafely) },
+                onOpenClock = { open(clockOpenIntents()) },
+                onOpenCalendar = { now -> open(calendarOpenIntents(now)) },
                 homeRequests = homeRequests,
             )
         }
@@ -76,13 +72,14 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private fun startActivitySafely(intent: Intent): Boolean =
-        try {
-            startActivity(intent)
-            true
-        } catch (_: ActivityNotFoundException) {
-            false
-        }
+    /** The device decides which of [candidates] answers; Less only asks in order. */
+    private fun open(candidates: List<Intent>): Boolean =
+        openFirstResolved(
+            candidates = candidates,
+            handlerOf = { intent -> intent.resolveActivity(packageManager)?.packageName },
+            frontDoorOf = packageManager::getLaunchIntentForPackage,
+            start = ::startActivity,
+        )
 }
 
 @Composable
@@ -105,14 +102,12 @@ internal fun LessLauncher(
     val view = LocalView.current
     SideEffect {
         val window = (view.context as? Activity)?.window ?: return@SideEffect
+        window.isNavigationBarContrastEnforced = false
         val lightBars = theme.textColor.luminance() < 0.5f
         WindowCompat.getInsetsController(window, view).apply {
             isAppearanceLightStatusBars = lightBars
             isAppearanceLightNavigationBars = lightBars
         }
-        // Kept off here as well as at the edge-to-edge setup: asking for light navigation
-        // icons re-opts into the platform contrast scrim unless we refuse it every time.
-        window.isNavigationBarContrastEnforced = false
     }
 
     LaunchedEffect(Unit) {

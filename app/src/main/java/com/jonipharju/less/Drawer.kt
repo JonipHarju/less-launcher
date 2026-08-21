@@ -39,7 +39,6 @@ import com.jonipharju.less.launcher.FavoritesSoftCap
 import com.jonipharju.less.launcher.LauncherApp
 import com.jonipharju.less.launcher.LauncherRepository
 import com.jonipharju.less.launcher.VerticalSwipe
-import com.jonipharju.less.launcher.appToLaunchForTypedQuery
 import com.jonipharju.less.launcher.asksForHomeRole
 import com.jonipharju.less.launcher.closesDrawer
 import com.jonipharju.less.launcher.customLabels
@@ -64,19 +63,18 @@ internal fun Drawer(
     val hiddenApps by repository.hiddenApps.collectAsState()
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
-    // The query that already auto-launched, so growing it — "out" into "outlook" — cannot fire
-    // again. Remembered with the field, so leaving the Drawer drops both and a later visit is
-    // a new query.
-    var launchedQuery by remember { mutableStateOf<String?>(null) }
     // A Hidden App is out of the Drawer entirely, search included. A Favorite the user renamed
     // answers to their own name for it as well as to its real one.
-    val rankedApps = installedApps.withoutHidden(hiddenApps).rankedFor(query, favorites.customLabels())
+    val drawerApps = installedApps.withoutHidden(hiddenApps)
+    val customLabels = favorites.customLabels()
+    val rankedApps = drawerApps.rankedFor(query, customLabels)
     val searchFocusRequester = remember { FocusRequester() }
     val opensKeyboard = settings.opensKeyboardWithDrawer
     val drawerOpenDirection = settings.drawerOpenDirection
     val theme = LocalTheme.current
     val iconMode = effectiveIconMode(theme, settings.iconModeOverride)
 
+    val searchAutoOpen = remember { DrawerSearchAutoOpen() }
     var curated by remember { mutableStateOf<LauncherApp?>(null) }
     var crowdedHome by remember { mutableStateOf(false) }
     var uninstallFailed by remember { mutableStateOf(false) }
@@ -101,15 +99,15 @@ internal fun Drawer(
         }
         SearchField(
             query = query,
-            onQueryChange = { newQuery ->
-                val previousQuery = query
-                val rememberedLaunch = launchedQuery?.takeIf { newQuery.startsWith(it) }
-                query = newQuery
-                val ranked =
-                    installedApps.withoutHidden(hiddenApps).rankedFor(newQuery, favorites.customLabels())
-                val target = appToLaunchForTypedQuery(newQuery, ranked, previousQuery, rememberedLaunch)
-                launchedQuery = if (target != null) newQuery else rememberedLaunch
-                target?.let(repository::launch)
+            onQueryChange = { nextQuery ->
+                val matchingApp =
+                    searchAutoOpen.queryChanged(
+                        previousQuery = query,
+                        nextQuery = nextQuery,
+                        results = drawerApps.rankedFor(nextQuery, customLabels),
+                    )
+                query = nextQuery
+                matchingApp?.let(repository::launch)
             },
             onSearch = { rankedApps.firstOrNull()?.let(repository::launch) },
             focusRequester = searchFocusRequester,
@@ -196,6 +194,36 @@ internal fun Drawer(
         )
     }
 }
+
+/**
+ * The sole visible result a Drawer search opens, once the user has typed far enough forward
+ * into it — and only once: a query that keeps growing over the same sole result has already
+ * opened it, and typing on must not open it again. The result is let go of as soon as the
+ * search stops naming it alone, so a fresh search for the same app opens it afresh.
+ */
+internal class DrawerSearchAutoOpen {
+    private var opened: LauncherApp? = null
+
+    fun queryChanged(
+        previousQuery: String,
+        nextQuery: String,
+        results: List<LauncherApp>,
+    ): LauncherApp? {
+        val sole = results.singleOrNull()
+        if (sole != opened) opened = null
+        if (sole == null || sole == opened) return null
+
+        val typedForward =
+            nextQuery.length >= DRAWER_SEARCH_AUTO_OPEN_MINIMUM_LENGTH &&
+                nextQuery.length > previousQuery.length
+        if (!typedForward) return null
+
+        opened = sole
+        return sole
+    }
+}
+
+private const val DRAWER_SEARCH_AUTO_OPEN_MINIMUM_LENGTH = 3
 
 /**
  * The standing offer to become the default launcher, in the Drawer rather than over it: it is

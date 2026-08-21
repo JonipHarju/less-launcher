@@ -12,7 +12,7 @@ class ConfigurationTest {
     @Test
     fun `the stored proto round-trips Favorites, Hidden Apps and settings`() {
         val stored = configuredRecord()
-        val roundTripped = LauncherUserData.parseFrom(stored.toByteArray())
+        val roundTripped = stored.roundTripped()
 
         assertEquals(stored.storedFavorites(), roundTripped.storedFavorites())
         assertEquals(stored.storedHiddenApps(), roundTripped.storedHiddenApps())
@@ -21,7 +21,7 @@ class ConfigurationTest {
 
     @Test
     fun `the stored proto keeps the order and custom labels of Favorites`() {
-        val roundTripped = LauncherUserData.parseFrom(configuredRecord().toByteArray())
+        val roundTripped = configuredRecord().roundTripped()
 
         assertEquals(
             listOf(
@@ -34,7 +34,7 @@ class ConfigurationTest {
 
     @Test
     fun `the active Theme survives the round trip`() {
-        val roundTripped = LauncherUserData.parseFrom(configuredRecord().toByteArray())
+        val roundTripped = configuredRecord().roundTripped()
 
         assertEquals("parasol", roundTripped.storedSettings().themeId)
     }
@@ -45,7 +45,7 @@ class ConfigurationTest {
             configuredRecord().settingsUpdated {
                 it.copy(setupStep = SetupStep.Done, hasHeldHomeRole = true)
             }
-        val roundTripped = LauncherUserData.parseFrom(stored.toByteArray())
+        val roundTripped = stored.roundTripped()
 
         assertEquals(SetupStep.Done, roundTripped.storedSettings().setupStep)
         assertEquals(true, roundTripped.storedSettings().hasHeldHomeRole)
@@ -67,4 +67,6 @@ class ConfigurationTest {
                     opensKeyboardWithDrawer = false,
                 )
             }
+
+    private fun LauncherUserData.roundTripped(): LauncherUserData = LauncherUserData.parseFrom(toByteArray())
 }
